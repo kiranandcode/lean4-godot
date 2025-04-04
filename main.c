@@ -1,31 +1,16 @@
 #include <stdio.h>
-#include <lean/lean.h>
+#include "godot-headers/godot/gdextension_interface.h"
+#include <dlfcn.h>
 
-
-extern void lean_initialize_runtime_module();
-extern void lean_initialize();
-extern void lean_io_mark_end_initialization();
-extern lean_object * initialize_LeanGodot(uint8_t builtin, lean_object *);
-extern lean_object *lean_godot_init();
-
+typedef int (*init_fn)();
 
 int main () {
-  printf("[main] running C code!");
-  lean_initialize_runtime_module();
-  lean_object *res;
-
-  uint8_t builtin = 1;
-  res = initialize_LeanGodot(builtin, lean_io_mk_world());
-  if (lean_io_result_is_ok(res)) {
-    lean_dec_ref(res);
-  } else {
-    lean_io_result_show_error(res);
-    lean_dec(res);
-    return 1;
-  }
-  lean_io_mark_end_initialization();
-
-  lean_godot_init();
-  
-  
+  void *handle = dlopen(".lake/build/lib/libleangodot.so", RTLD_LAZY);
+  printf("loading lean_godot_gdnative_init\n");
+  GDExtensionInitializationFunction f =
+    (GDExtensionInitializationFunction)dlsym(handle, "lean_godot_gdnative_init");
+  printf("loaded?\n");
+  printf("%p\n", dlsym(handle, "_initialise_lean_state"));
+  init_fn g = (init_fn)dlsym(handle, "_initialise_lean_state");
+  g();
 }

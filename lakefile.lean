@@ -3,12 +3,10 @@ open System Lake DSL
 
 package LeanGodot where
   version := v!"0.0.1"
-  description := "random"
+  description := "Lean4 bindings to the Godot Game Engine"
   license := "MIT"
-  keywords := #["gamedev"]
+  keywords := #["gamedev", "c-bindings"]
 
-
-@[default_target]
 lean_lib LeanGodot where
   srcDir := "lean"
   defaultFacets := #[LeanLib.sharedFacet]
@@ -34,9 +32,30 @@ target bindings.o (pkg : NPackage _package.name) : FilePath := do
         bindings_o
         bindings_c #["-I", gdextension_h, "-I", lean_dir, "-fPIC"]
 
-extern_lib bindings (pkg: NPackage _package.name) := do
-  let name := nameToStaticLib "bindings"
+@[default_target]
+extern_lib extension (pkg: NPackage _package.name) := do
+  let name := nameToSharedLib "leangodot"
+  let outDir := pkg.buildDir / "lib"
+
   let bindings_o <- fetch <| pkg.target ``bindings.o
-  buildStaticLib
-    (pkg.buildDir / "lib" / name)
-    #[bindings_o]
+  let some lean_godot_lib := pkg.findLeanLib? ``LeanGodot
+     | error "cannot find lean_lib target"
+  let lean_godot_lib <- lean_godot_lib.recBuildStatic false
+
+  let leanLibDir := (<- getLeanLibDir)
+  let leanStaticLibs :=
+      (<- leanLibDir.readDir)
+      |>.filter (fun file => file.path.extension.isEqSome "so")
+      |>.map (fun file => file.path.toString)
+
+  buildFileAfterDep (outDir / name) (.collectList [
+       bindings_o,
+       lean_godot_lib
+   ]) fun data =>
+       let bindings_o := data[0]!
+       let lean_godot_lib := data[1]!
+       compileSharedLib
+         (outDir / name)
+         <|
+          #[bindings_o.toString, lean_godot_lib.toString]
+          |>.append leanStaticLibs
