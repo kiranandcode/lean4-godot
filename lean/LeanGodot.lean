@@ -73,9 +73,25 @@ elab_rules : term
       build_fn_stx stx id msg (TSyntax.mk (mkCIdent ``false))
    Term.elabTerm stx none
 
-
-
 end Macro
+
+opaque GDString : Type
+
+namespace GDString
+
+@[extern "lean4_string_new_with_latin1_chars"]
+opaque of_latin1: @& String -> IO GDString
+
+@[extern "lean4_string_new_with_utf8_chars"]
+opaque of_string: @& String -> IO GDString
+
+@[extern "lean4_string_to_latin1_chars"]
+opaque to_string_latin1: @& GDString -> IO String
+
+@[extern "lean4_string_to_utf8_chars"]
+opaque to_string: @& GDString -> IO String
+
+end GDString
 
 
 @[export lean_godot_on_initialization]
@@ -85,6 +101,12 @@ def on_initialization (lvl: Initialization.Level) : IO Unit := do
   gd_print_error! "error from Lean"
   gd_print_warning! "warning from Lean"
   gd_eprint! "script error from Lean"
+  let g_str <- GDString.of_string "hello"
+  gd_eprint! "converted to gdstring object"
+  let v_str <- GDString.to_string g_str
+  gd_eprint! "converted back to lean"
+
+  gd_eprint! "{v_str}"
 
 @[export lean_godot_on_deinitialization]
 def on_deinitialization (lvl: Initialization.Level) : IO Unit := do

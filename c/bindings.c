@@ -24,8 +24,27 @@
   } \
   } while(0)
 
+#define REGISTER_LEAN_CLASS(NAME, FINALISER, FOREACH) \
+  static lean_external_class * g_ ## NAME ## _class; \
+  static lean_external_class * get_ ## NAME ## _class() { \
+     if(g_ ## NAME ## _class == NULL) { g_ ## NAME ## _class = lean_register_external_class(&FINALISER,&FOREACH); } \
+     return g_ ## NAME ## _class; \
+  }
 
 /* * External Functions */
+/* ** Utilities */
+inline static void noop_foreach(void *mod, b_lean_obj_arg fn) {}
+
+/* ** Class Declarations */
+static void lean4_GDExtensionVariantPtr_finalizer(void * _obj) {}
+REGISTER_LEAN_CLASS(GDExtensionVariantPtr, lean4_GDExtensionVariantPtr_finalizer, noop_foreach)
+
+
+static void lean4_GDExtensionStringPtr_finalizer(void * _obj) {}
+REGISTER_LEAN_CLASS(GDExtensionStringPtr, lean4_GDExtensionStringPtr_finalizer, noop_foreach)
+
+
+
 /* ** Runtime setup */
 extern void lean_initialize_runtime_module();
 extern void lean_initialize();
@@ -38,6 +57,7 @@ extern lean_object *lean_godot_on_deinitialization(GDExtensionInitializationLeve
 
 /* ** C->Lean4 bindings */
 
+/* *** Get Godot Version */
 GDExtensionInterfaceGetGodotVersion get_godot_version = NULL;
 lean_object *lean4_get_version() {
   GDExtensionGodotVersion version;
@@ -54,6 +74,7 @@ lean_object *lean4_get_version() {
 }
 
 
+/* *** Print Error */
 GDExtensionInterfacePrintError print_error;
 lean_object *lean4_print_error(lean_object *p_description,
                                lean_object *p_function,
@@ -72,6 +93,7 @@ lean_object *lean4_print_error(lean_object *p_description,
   return lean_io_result_mk_ok(lean_box(0));
 }
 
+/* *** Print Warning */
 GDExtensionInterfacePrintWarning print_warning;
 lean_object *lean4_print_warning(lean_object *p_description,
                                lean_object *p_function,
@@ -90,6 +112,7 @@ lean_object *lean4_print_warning(lean_object *p_description,
   return lean_io_result_mk_ok(lean_box(0));
 }
 
+/* *** Print Script Error */
 GDExtensionInterfacePrintScriptError print_script_error;
 lean_object *lean4_print_script_error(lean_object *p_description,
                                lean_object *p_function,
@@ -108,9 +131,63 @@ lean_object *lean4_print_script_error(lean_object *p_description,
   return lean_io_result_mk_ok(lean_box(0));
 }
 
-GDExtensionInterfaceGetNativeStructSize get_native_struct_size;
+/* *** Get native struct size */
+GDExtensionInterfaceGetNativeStructSize get_native_struct_size = NULL;
 uint64_t lean4_get_native_struct_size(lean_object *p_name) {
   
+}
+
+/* ** Variant */
+GDExtensionInterfaceVariantNewNil variant_new_nil = NULL;
+lean_object *lean4_variant_new_nil(GDExtensionUninitializedVariantPtr r_dest) {
+  LEAN4_CHECK_FP_INIT(variant_new_nil);
+  void *res = NULL;
+  variant_new_nil(&res);
+  lean_object *variantObj = lean_alloc_external(get_GDExtensionVariantPtr_class(), (void *)res);
+  return lean_io_result_mk_ok(variantObj);
+}
+
+/* ** String */
+
+/* *** String_new_with_latin1_chars */
+GDExtensionInterfaceStringNewWithLatin1Chars string_new_with_latin1_chars = NULL;
+lean_object *lean4_string_new_with_latin1_chars(lean_object *string) {
+  LEAN4_CHECK_FP_INIT(string_new_with_latin1_chars);
+  void *res = NULL;
+  string_new_with_latin1_chars(&res, lean_string_cstr(string));
+  lean_object *strObject = lean_alloc_external(get_GDExtensionStringPtr_class(), (void *)res);
+  return lean_io_result_mk_ok(strObject);
+}
+
+GDExtensionInterfaceStringNewWithUtf8Chars string_new_with_utf8_chars = NULL;
+lean_object *lean4_string_new_with_utf8_chars(lean_object *string) {
+  LEAN4_CHECK_FP_INIT(string_new_with_utf8_chars);
+  GDExtensionStringPtr res = NULL;
+  string_new_with_utf8_chars(&res, lean_string_cstr(string));
+  lean_object *strObject = lean_alloc_external(get_GDExtensionStringPtr_class(), (void *)res);
+  return lean_io_result_mk_ok(strObject);
+}
+
+GDExtensionInterfaceStringToLatin1Chars string_to_latin1_chars = NULL;
+lean_object *lean4_string_to_latin1_chars(lean_object *string) {
+  LEAN4_CHECK_FP_INIT(string_to_latin1_chars);
+  GDExtensionStringPtr gstring = lean_get_external_data(string);
+  GDExtensionInt len = string_to_latin1_chars(&gstring,NULL,0);
+  char buf[len];
+  string_to_latin1_chars(&gstring,buf,len);
+  lean_object *res = lean_mk_string_from_bytes(buf, len);
+  return lean_io_result_mk_ok(res);
+}
+
+GDExtensionInterfaceStringToUtf8Chars string_to_utf8_chars = NULL;
+lean_object *lean4_string_to_utf8_chars(lean_object *string) {
+  LEAN4_CHECK_FP_INIT(string_to_utf8_chars);
+  GDExtensionStringPtr gstring = lean_get_external_data(string);
+  GDExtensionInt len = string_to_utf8_chars(&gstring,NULL,0);
+  char buf[len];
+  string_to_utf8_chars(&gstring,buf,len);
+  lean_object *res = lean_mk_string_from_bytes(buf, len);
+  return lean_io_result_mk_ok(res);
 }
 
 /* * Helpers */
@@ -156,7 +233,13 @@ GDExtensionBool lean_godot_gdnative_init(
   print_error = (GDExtensionInterfacePrintError)p_get_proc_address("print_error");
   print_warning = (GDExtensionInterfacePrintWarning)p_get_proc_address("print_warning");
   print_script_error = (GDExtensionInterfacePrintScriptError)p_get_proc_address("print_script_error");
+  
+  variant_new_nil = (GDExtensionInterfaceVariantNewNil)p_get_proc_address("variant_new_nil");
 
+  string_new_with_latin1_chars = (GDExtensionInterfaceStringNewWithLatin1Chars)p_get_proc_address("string_new_with_latin1_chars");
+  string_new_with_utf8_chars = (GDExtensionInterfaceStringNewWithUtf8Chars)p_get_proc_address("string_new_with_utf8_chars");
+  string_to_latin1_chars = (GDExtensionInterfaceStringToLatin1Chars)p_get_proc_address("string_to_latin1_chars");
+  string_to_utf8_chars = (GDExtensionInterfaceStringToUtf8Chars)p_get_proc_address("string_to_utf8_chars");
 
 
   // initialise lean
