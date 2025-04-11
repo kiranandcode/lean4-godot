@@ -133,8 +133,11 @@ lean_object *lean4_print_script_error(lean_object *p_description,
 
 /* *** Get native struct size */
 GDExtensionInterfaceGetNativeStructSize get_native_struct_size = NULL;
-uint64_t lean4_get_native_struct_size(lean_object *p_name) {
-  
+uint64_t lean4_get_native_struct_size(lean_object *string) {
+  LEAN4_CHECK_FP_INIT(get_native_struct_size);
+  GDExtensionStringPtr gstring = lean_get_external_data(string);
+  uint64_t res = get_native_struct_size(gstring);
+  return res;
 }
 
 /* ** Variant */

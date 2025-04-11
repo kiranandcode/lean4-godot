@@ -6,6 +6,6 @@ import Example
 opaque epic: Int
 
 def main : IO Unit := do
-  println! "hello world! {f}"
+  println! "hello world!"
 
 #godotBindings
