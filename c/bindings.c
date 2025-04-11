@@ -24,6 +24,14 @@
   } \
   } while(0)
 
+#define LEAN4_CHECK_FP_INIT_PURE(fp) \
+  do {\
+  if(fp == NULL) { \
+    lean_panic("godot binding " #fp " has not been initialised", true); \
+  } \
+  } while(0)
+
+
 #define REGISTER_LEAN_CLASS(NAME, FINALISER, FOREACH) \
   static lean_external_class * g_ ## NAME ## _class; \
   static lean_external_class * get_ ## NAME ## _class() { \
@@ -134,7 +142,7 @@ lean_object *lean4_print_script_error(lean_object *p_description,
 /* *** Get native struct size */
 GDExtensionInterfaceGetNativeStructSize get_native_struct_size = NULL;
 uint64_t lean4_get_native_struct_size(lean_object *string) {
-  LEAN4_CHECK_FP_INIT(get_native_struct_size);
+  LEAN4_CHECK_FP_INIT_PURE(get_native_struct_size);
   GDExtensionStringPtr gstring = lean_get_external_data(string);
   uint64_t res = get_native_struct_size(gstring);
   return res;

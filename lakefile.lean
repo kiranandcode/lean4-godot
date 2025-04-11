@@ -9,6 +9,7 @@ package LeanGodot where
 
 lean_lib LeanGodot where
   srcDir := "lean"
+  moreLeanArgs := #["-D", "godot.onlyBindings=true"]
   defaultFacets := #[LeanLib.sharedFacet]
   buildType := .release
   platformIndependent := true
@@ -18,6 +19,10 @@ lean_lib Bindings where
   defaultFacets := #[LeanLib.sharedFacet]
   buildType := .release
   platformIndependent := true
+
+lean_exe GenerateBindings where
+   srcDir := "scripts"
+   root := `GenerateBindings
 
 
 target bindings.c (_pkg : NPackage _package.name) : FilePath := do
@@ -37,7 +42,7 @@ target bindings.o (pkg : NPackage _package.name) : FilePath := do
      let gdextension_h := deps[1]!.parent.get!.parent.get!.toString
      compileO
         bindings_o
-        bindings_c #["-I", gdextension_h, "-I", lean_dir, "-fPIC"]
+        bindings_c #["-I", gdextension_h, "-I", lean_dir, "-epic"]
 
 @[default_target]
 extern_lib extension (pkg: NPackage _package.name) := do

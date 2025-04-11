@@ -9,8 +9,7 @@ structure Version where
   string: String
 deriving Repr, Ord, BEq
 
-@[extern "lean4_get_version"]
-opaque version : IO Version
+godot_opaque version : IO Version := "lean4_get_version"
 
 namespace Initialization
 -- GDExtensionInitializationLevel
@@ -23,16 +22,13 @@ inductive Level where
 deriving Repr, Ord, BEq
 end Initialization 
 
-@[extern "lean4_print_error"]
-private opaque raw_print_error: @& String -> @& String -> @& String -> Int32 -> Bool -> IO Unit
+private godot_opaque raw_print_error: @& String -> @& String -> @& String -> Int32 -> Bool -> IO Unit := "lean4_print_error"
 def gd_print_error (description : String) (function: String) (file: String) (line: Int) (notify_editor: Bool) := raw_print_error description function file (Int.toInt32 line) notify_editor
 
-@[extern "lean4_print_warning"]
-private opaque raw_print_warning: @& String -> @& String -> @& String -> Int32 -> Bool -> IO Unit
+private godot_opaque raw_print_warning: @& String -> @& String -> @& String -> Int32 -> Bool -> IO Unit := "lean4_print_warning"
 def gd_print_warning (description : String) (function: String) (file: String) (line: Int) (notify_editor: Bool) := raw_print_warning description function file (Int.toInt32 line) notify_editor
 
-@[extern "lean4_print_script_error"]
-private opaque raw_print_script_error: @& String -> @& String -> @& String -> Int32 -> Bool -> IO Unit
+private godot_opaque raw_print_script_error: @& String -> @& String -> @& String -> Int32 -> Bool -> IO Unit := "lean4_print_script_error"
 def gd_print_script_error (description : String) (function: String) (file: String) (line: Int) (notify_editor: Bool) := raw_print_script_error description function file (Int.toInt32 line) notify_editor
 
 
@@ -80,14 +76,11 @@ opaque GDString : Type
 
 namespace GDString
 
-@[extern "lean4_string_new_with_latin1_chars"]
-opaque of_latin1: @& String -> IO GDString
+godot_opaque of_latin1: @& String -> IO GDString := "lean4_string_new_with_latin1_chars"
 
-@[extern "lean4_string_new_with_utf8_chars"]
-opaque of_string: @& String -> IO GDString
+godot_opaque of_string: @& String -> IO GDString := "lean4_string_new_with_utf8_chars"
 
-@[extern "lean4_string_to_latin1_chars"]
-opaque to_string_latin1: @& GDString -> IO String
+godot_opaque to_string_latin1: @& GDString -> IO String := "lean4_string_to_latin1_chars"
 
 -- @[extern "lean4_string_to_utf8_chars"]
 -- opaque to_string: @& GDString -> IO String
@@ -117,12 +110,3 @@ def on_deinitialization (lvl: Initialization.Level) : IO Unit := do
   println! "[lean4-godot] on_deinitialization called with {repr lvl}"
 
 end Godot
-
-@[export lean_godot_init]
-def lean_init : IO Unit := do
-println! "[lean_init] calling code from Lean"
-
-println! "[lean_init] back in Lean"
-def x : String := #GenGodotInits
-
-#eval #GenGodotDeclarations
