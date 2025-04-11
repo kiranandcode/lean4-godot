@@ -13,6 +13,13 @@ lean_lib LeanGodot where
   buildType := .release
   platformIndependent := true
 
+lean_lib Bindings where
+  srcDir := "lean"
+  defaultFacets := #[LeanLib.sharedFacet]
+  buildType := .release
+  platformIndependent := true
+
+
 target bindings.c (_pkg : NPackage _package.name) : FilePath := do
   inputFile "c/bindings.c" true
 

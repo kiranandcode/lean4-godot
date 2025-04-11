@@ -1,7 +1,7 @@
 import Lean
-import BindingsLang.Types
-import BindingsLang.Utils
-import BindingsLang.Extraction
+import Bindings.Types
+import Bindings.Utils
+import Bindings.Extraction
 
 private def lean4_string_with_utf8_chars : GodotBindingType :=
   GodotBindingType.Function

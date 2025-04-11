@@ -1,4 +1,5 @@
 import Lean.Elab
+import Bindings
 
 namespace Godot
 structure Version where
@@ -88,8 +89,11 @@ opaque of_string: @& String -> IO GDString
 @[extern "lean4_string_to_latin1_chars"]
 opaque to_string_latin1: @& GDString -> IO String
 
-@[extern "lean4_string_to_utf8_chars"]
-opaque to_string: @& GDString -> IO String
+-- @[extern "lean4_string_to_utf8_chars"]
+-- opaque to_string: @& GDString -> IO String
+
+@[godot "string_to_utf8_chars" GDExtensionInterfaceStringToUtf8Chars]
+opaque to_string: (p_name: @& GDString) -> String
 
 end GDString
 
@@ -103,7 +107,7 @@ def on_initialization (lvl: Initialization.Level) : IO Unit := do
   gd_eprint! "script error from Lean"
   let g_str <- GDString.of_string "hello"
   gd_eprint! "converted to gdstring object"
-  let v_str <- GDString.to_string g_str
+  let v_str := GDString.to_string g_str
   gd_eprint! "converted back to lean"
 
   gd_eprint! "{v_str}"
@@ -119,3 +123,6 @@ def lean_init : IO Unit := do
 println! "[lean_init] calling code from Lean"
 
 println! "[lean_init] back in Lean"
+def x : String := #GenGodotInits
+
+#eval #GenGodotDeclarations

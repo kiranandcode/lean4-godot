@@ -1,5 +1,5 @@
 import Lean
-import BindingsLang.Types
+import Bindings.Types
 open Lean Meta Elab Command
 
 def extractGodotType [Monad m] [MonadError m] (e: Expr) : m GodotType :=
