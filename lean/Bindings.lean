@@ -5,14 +5,14 @@ import Bindings.Extraction
 import Bindings.Generation
 open Lean Meta Elab Command
 
-private def LeanGodot.onlyBindings := `godot.onlyBindings
-def LeanGodot.onlyBindings? [Monad m] [MonadOptions m] : m Bool := do
-   let opts <- getOptions
-   return opts.getBool LeanGodot.onlyBindings
+-- private def LeanGodot.onlyBindings := `godot.onlyBindings
+-- def LeanGodot.onlyBindings? [Monad m] [MonadOptions m] : m Bool := do
+--    let opts <- getOptions
+--    return opts.getBool LeanGodot.onlyBindings
 
-initialize registerOption LeanGodot.onlyBindings {
-    defValue := false
-  }
+-- initialize registerOption LeanGodot.onlyBindings {
+--     defValue := false
+--   }
 
 initialize godotRegistryExt : SimplePersistentEnvExtension GodotBinding (List GodotBinding) ←
   registerSimplePersistentEnvExtension {
@@ -43,6 +43,19 @@ def elabLeanGodotOut : Term.TermElab := fun stx oty => match stx with
 | _ => throwUnsupportedSyntax
 
 
+def GodotBinding.declareExtern [Monad m] [MonadError m] [MonadEnv m] (binding : GodotBinding) : m Unit := do
+  let (declName, cname) :=
+       match binding with
+       | .Opaque declName cname => (declName, cname)
+       | .Binding declName _ _ => (declName, LeanGodot.generateExternName declName)
+  let externRes := externAttr.setParam (<- getEnv) declName ⟨
+        .none,
+        [.standard `all cname]
+      ⟩
+  let _ <- match externRes with
+     | .ok env => setEnv env
+     | .error s => throwError s
+
 def godotAttrImpl : AttributeImpl where
   name := `godot
   descr := "Marks an opaque definition as a godot binding"
@@ -56,25 +69,16 @@ def godotAttrImpl : AttributeImpl where
         let id := id.map (·.getId.toString)
 
         let isType := match type with | .sort 1 => true | _ => false
-        let onlyBindings? <- LeanGodot.onlyBindings?
+        -- let onlyBindings? <- LeanGodot.onlyBindings?
 
-        -- first, add extern bindings if it is not a type
-        -- we will be generating a C file to implement these eventually
-        if !isType then
-            if !onlyBindings? then
-               let externRes := externAttr.setParam (<- getEnv) declName ⟨
-                     .none,
-                     [.standard `all (LeanGodot.generateExternName declName)]
-                   ⟩
-               let _ <- match externRes with
-                  | .ok env => setEnv env
-                  | .error s => throwError s
-            -- if it is a type, then we expect an identifier  
-            let .some _ := id
-                | throwError "[godot] for declaration {declName} user did not provide a GodotFunctionType"
-
-        -- second, extract binding metadata to track across the project
+        -- first extract binding metadata to track across the project
         let binding <- GodotBinding.make declName cname.getString type id
+
+        -- second, add extern bindings if it is not a type
+        if !isType then
+            binding.declareExtern
+        -- we will be generating a C file to implement these eventually
+        -- update env with binding
         modifyEnv (fun env => godotRegistryExt.addEntry env binding)
         let env <- getEnv
         -- logInfo m!"[godotAttr] registering {declName} => {getGodotBindings env}"
@@ -86,31 +90,37 @@ initialize registerBuiltinAttribute godotAttrImpl
 
 syntax (name := godotOpaque) (Parser.Command.visibility)? "godot_opaque" ident " : " term " := " str : command
 
+private def evalCommandAndBindOpaque (declName: TSyntax `ident) (cmd: TSyntax `str) (stx: TSyntax `command) : CommandElabM Unit := do
+   elabCommand stx
+   let expr <- liftTermElabM (Term.elabIdent declName .none)
+   let declName := expr.constName!
+   let binding := GodotBinding.makeOpaque declName cmd.getString
+   binding.declareExtern
+   modifyEnv (fun env => godotRegistryExt.addEntry env binding)
+
+
 @[command_elab godotOpaque]
 elab_rules : command
 | `(command| godot_opaque $expr:ident : $ty:term := $cmd:str) => do
-   let onlyBindings? <- LeanGodot.onlyBindings?
-   let stx <-
-      if onlyBindings?
-      then `(command| def $expr : $ty := by sorry)
-      else `(command| @[extern $cmd:str] opaque $expr : $ty)
-   elabCommand stx
+   let stx <- `(command| opaque $expr : $ty)
+   evalCommandAndBindOpaque expr cmd stx
 | `(command| private godot_opaque $expr:ident : $ty:term := $cmd:str) => do
-   let onlyBindings? <- LeanGodot.onlyBindings?
-   let stx <-
-      if onlyBindings?
-      then `(command| def $expr : $ty := by sorry)
-      else `(command| @[extern $cmd:str] private opaque $expr : $ty)
-   elabCommand stx
+   let stx <- `(command| private opaque $expr : $ty)
+   evalCommandAndBindOpaque expr cmd stx
 | `(command| protected godot_opaque $expr:ident : $ty:term := $cmd:str) => do
-   let onlyBindings? <- LeanGodot.onlyBindings?
-   let stx <-
-      if onlyBindings?
-      then `(command| def $expr : $ty := by sorry)
-      else `(command| @[extern $cmd:str] protected opaque $expr : $ty)
-   elabCommand stx
+   let stx <- `(command| protected opaque $expr : $ty)
+   evalCommandAndBindOpaque expr cmd stx
 
 open Term
+
+syntax (name := godotDeclareExterns) "#declareGodotExterns" : command
+@[command_elab godotDeclareExterns]
+elab_rules : command
+| `(command| #declareGodotExterns) => do
+   let env <- getEnv
+   let entries := getGodotBindings env
+   for entry in entries do
+      GodotBinding.declareExtern entry
 
 syntax (name := godotDeclarations) "#GenGodotDeclarations" : term
 @[term_elab godotDeclarations]

@@ -2,6 +2,10 @@ import Lean
 import Bindings.Types
 open Lean Meta Elab Command
 
+def Lean.Name.basename : Name -> String
+| .str _ name => name
+| n => n.toString
+
 def extractGodotType [Monad m] [MonadError m] (e: Expr) : m GodotType :=
   match e with
   | .const `Unit _ => return GodotType.Unit
@@ -9,14 +13,15 @@ def extractGodotType [Monad m] [MonadError m] (e: Expr) : m GodotType :=
   | .const `Bool _ =>  return GodotType.Bool
   | .const name _ =>
      let tyName := name.toString
+     let basename := name.basename
      -- handling of Int_ and UInt_
-     if let .some sz := tyName.dropPrefix? "Int" |>.bind fun n => n.toNat? then
+     if let .some sz := basename.dropPrefix? "Int" |>.bind fun n => n.toNat? then
         return GodotType.Int true sz
-     else if let .some sz := tyName.dropPrefix? "UInt" |>.bind fun n => n.toNat? then
+     else if let .some sz := basename.dropPrefix? "UInt" |>.bind fun n => n.toNat? then
         return GodotType.Int false sz       
      else
      -- default case
-        return GodotType.Extern (name.toString)
+        return GodotType.Extern tyName
   | _ => throwError "[extractGodotType] unsupported type {repr e}"
 
 def extractGodotBinderType [Monad m] [MonadError m] (ty: Expr) : m (GodotType × GodotBindingArgSpecifier) := do
@@ -67,5 +72,8 @@ def extractGodotBindingType [Monad m] [MonadError m] (e: Expr) (id: Option Strin
 
 def GodotBinding.make (decl: Name) (cname: String) (type: Expr) (id: Option String) : AttrM GodotBinding := do
    let type <- extractGodotBindingType type id
-   return ⟨decl, cname, type⟩
+   return .Binding decl cname type
+
+def GodotBinding.makeOpaque (decl: Name) (cname: String) : GodotBinding := 
+   .Opaque decl cname
 

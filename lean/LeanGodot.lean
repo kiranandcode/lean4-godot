@@ -72,21 +72,25 @@ elab_rules : term
 
 end Macro
 
+@[godot "GDExtensionStringPtr"]
 opaque GDString : Type
 
 namespace GDString
 
-godot_opaque of_latin1: @& String -> IO GDString := "lean4_string_new_with_latin1_chars"
+-- godot_opaque of_latin1: @& String -> IO GDString := "lean4_string_new_with_latin1_chars"
 
-godot_opaque of_string: @& String -> IO GDString := "lean4_string_new_with_utf8_chars"
+-- godot_opaque of_string: @& String -> IO GDString := "lean4_string_new_with_utf8_chars"
 
-godot_opaque to_string_latin1: @& GDString -> IO String := "lean4_string_to_latin1_chars"
+-- godot_opaque to_string_latin1: @& GDString -> IO String := "lean4_string_to_latin1_chars"
 
 -- @[extern "lean4_string_to_utf8_chars"]
 -- opaque to_string: @& GDString -> IO String
 
-@[godot "string_to_utf8_chars" GDExtensionInterfaceStringToUtf8Chars]
-opaque to_string: (p_name: @& GDString) -> String
+@[godot "string_new_with_utf8_chars" GDExtensionInterfaceStringNewWithUtf8Chars]
+opaque mk: (p_contents: @& String) -> IO (@out GDString)
+
+-- @[godot "string_to_utf8_chars" GDExtensionInterfaceStringToUtf8Chars]
+-- opaque to_string: (p_name: @& GDString) -> String
 
 end GDString
 
@@ -98,12 +102,12 @@ def on_initialization (lvl: Initialization.Level) : IO Unit := do
   gd_print_error! "error from Lean"
   gd_print_warning! "warning from Lean"
   gd_eprint! "script error from Lean"
-  let g_str <- GDString.of_string "hello"
+  -- let g_str <- GDString.of_string "hello"
   gd_eprint! "converted to gdstring object"
-  let v_str := GDString.to_string g_str
+  -- let v_str := GDString.to_string g_str
   gd_eprint! "converted back to lean"
 
-  gd_eprint! "{v_str}"
+  -- gd_eprint! "{v_str}"
 
 @[export lean_godot_on_deinitialization]
 def on_deinitialization (lvl: Initialization.Level) : IO Unit := do

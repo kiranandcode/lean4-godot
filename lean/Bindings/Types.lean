@@ -30,12 +30,22 @@ inductive GodotBindingType where
 
 deriving Inhabited, Repr
 
-structure GodotBinding where
-  declName : Name
-  cname    : String
-  type: GodotBindingType
+inductive GodotBinding where
+| Binding  (declName : Name) (cname: String) (type: GodotBindingType)
+| Opaque (declName: Name) (cname: String)
 deriving Inhabited, Repr
 
+
+def GodotBinding.declName : GodotBinding -> Name
+| .Binding declname _ _ => declname
+| .Opaque declname _ => declname
+
+def GodotBinding.cname : GodotBinding -> String
+| .Binding _ cname _ => cname
+| .Opaque _ cname => cname
+
 instance : ToString GodotBinding where
-   toString := fun ⟨declName, cname, type⟩ => s!"GodotBinding({declName}->{cname} : {repr type})"
+   toString := fun
+        | .Binding declName cname type => s!"GodotBinding({declName}->{cname} : {repr type})"
+        | .Opaque declName _ => s!"GodotBindingOpaque({declName})"
 

@@ -3,6 +3,8 @@ import Bindings.Types
 import Bindings.Utils
 import Bindings.Extraction
 
+abbrev TypeMap := Std.HashMap String String
+
 private def lean4_string_with_utf8_chars : GodotBindingType :=
   GodotBindingType.Function
    [("p_contents", GodotType.String, GodotBindingArgSpecifier.Borrowed)]
@@ -63,7 +65,7 @@ private def construct_return_arg_wrapper
         | .Unit => "lean_box(0)"
      s!"lean_io_result_mk_ok({resExpr})"
 
-private def construct_function_binding (declName: Lean.Name) (cname: String) : GodotBindingType -> String
+private def construct_function_binding (tyMap: TypeMap) (declName: Lean.Name) (cname: String) : GodotBindingType -> String
 | .Type => ""
 | .Function args ret_ty is_out wrapper fp_name => Id.run $ do
   let ret_ty_str := match wrapper with
@@ -85,6 +87,7 @@ private def construct_function_binding (declName: Lean.Name) (cname: String) : G
         let ⟨name, ty, _⟩ := params
         match ty with
         | .Extern tyName =>
+           let tyName := match tyMap.get? tyName with | .some v => v | .none => panic! "use of non-godot-declared type {tyName}"
            let tmpName := gen_fresh_arg s!"{name}_internal" <| boundArgs
            boundArgs := boundArgs.cons tmpName
            callParams := callParams.push tmpName
@@ -93,7 +96,7 @@ private def construct_function_binding (declName: Lean.Name) (cname: String) : G
            let tmpName := gen_fresh_arg s!"{name}_internal" <| boundArgs
            boundArgs := boundArgs.cons tmpName
            callParams := callParams.push tmpName
-           stmts := stmts.push s!"char *{tmpName} = lean_string_cstr({name});"
+           stmts := stmts.push s!"char *{tmpName} = (char *)lean_string_cstr({name});"
         | .Bool | .Int _ _ | .Unit =>
           callParams := callParams.push name
      pure callParams
@@ -121,6 +124,7 @@ private def construct_function_binding (declName: Lean.Name) (cname: String) : G
      let resArg <- do
         match ret_ty with
         | .Extern ty =>
+           let ty := match tyMap.get? ty with | .some v => v | .none => panic! "use of non-godot-declared type {tyName}"
            let resArg' := gen_fresh_arg "res" boundArgs
            boundArgs := boundArgs.cons resArg'
            stmts :=
@@ -156,28 +160,43 @@ private def construct_extern_type_init (name: String) (ty: GodotBindingType) : S
     s!"static void lean_godot_{name}_finalizer(void *_obj) \{};
 REGISTER_LEAN_CLASS({name}, lean_godot_{name}_finalizer, noop_foreach)"
 
-def LeanGodot.constructTypeDeclarations (bindingData: Array GodotBinding) : String :=
-   bindingData.map (fun binding =>
-     construct_extern_type_init binding.cname binding.type
+
+def buildTyMap (bindingData: Array GodotBinding) : TypeMap :=
+   bindingData.filterMap (fun
+   | .Binding decl cname .Type => .some (decl.toString, cname)
+   | _ => .none
    )
+   |>.toList
+   |> Std.HashMap.ofList
+
+def LeanGodot.constructTypeDeclarations (bindingData: Array GodotBinding) : String :=
+   bindingData.filterMap (fun
+   | .Binding _ cname type =>
+     .some (construct_extern_type_init cname type)
+   | _ => .none)
    |>.toList
    |> "\n".intercalate
 
-def LeanGodot.constructFunctionDeclarations (bindingData: Array GodotBinding) : String :=
-   bindingData.map (fun binding =>
-     construct_function_binding binding.declName binding.cname binding.type
+def LeanGodot.constructFunctionDeclarations (tyMap: TypeMap) (bindingData: Array GodotBinding) : String :=
+   bindingData.filterMap (fun
+   | .Binding declName cname type =>
+     .some (construct_function_binding tyMap declName cname type)
+   | _ => .none
    )
    |>.toList
    |> "\n".intercalate
 
 def LeanGodot.constructDeclarations (bindingData: Array GodotBinding) : String :=
+  let tyMap := buildTyMap bindingData
   LeanGodot.constructTypeDeclarations bindingData ++ "\n" ++
-  LeanGodot.constructFunctionDeclarations bindingData
+  LeanGodot.constructFunctionDeclarations tyMap bindingData
 
 
 def LeanGodot.constructFunctionInits (bindingData: Array GodotBinding) : String :=
-   bindingData.map (fun binding =>
-     construct_function_binding_init binding.cname binding.type
+   bindingData.filterMap (fun
+     | .Binding _ cname type =>
+       .some (construct_function_binding_init cname type)
+     | _ => .none
    )
    |>.toList
    |> "\n".intercalate

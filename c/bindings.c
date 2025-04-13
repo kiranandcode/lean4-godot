@@ -48,10 +48,10 @@ static void lean4_GDExtensionVariantPtr_finalizer(void * _obj) {}
 REGISTER_LEAN_CLASS(GDExtensionVariantPtr, lean4_GDExtensionVariantPtr_finalizer, noop_foreach)
 
 
-static void lean4_GDExtensionStringPtr_finalizer(void * _obj) {}
-REGISTER_LEAN_CLASS(GDExtensionStringPtr, lean4_GDExtensionStringPtr_finalizer, noop_foreach)
+/* static void lean4_GDExtensionStringPtr_finalizer(void * _obj) {} */
+/* REGISTER_LEAN_CLASS(GDExtensionStringPtr, lean4_GDExtensionStringPtr_finalizer, noop_foreach) */
 
-
+#include "declarations.h"
 
 /* ** Runtime setup */
 extern void lean_initialize_runtime_module();
@@ -170,14 +170,14 @@ lean_object *lean4_string_new_with_latin1_chars(lean_object *string) {
   return lean_io_result_mk_ok(strObject);
 }
 
-GDExtensionInterfaceStringNewWithUtf8Chars string_new_with_utf8_chars = NULL;
-lean_object *lean4_string_new_with_utf8_chars(lean_object *string) {
-  LEAN4_CHECK_FP_INIT(string_new_with_utf8_chars);
-  GDExtensionStringPtr res = NULL;
-  string_new_with_utf8_chars(&res, lean_string_cstr(string));
-  lean_object *strObject = lean_alloc_external(get_GDExtensionStringPtr_class(), (void *)res);
-  return lean_io_result_mk_ok(strObject);
-}
+/* GDExtensionInterfaceStringNewWithUtf8Chars string_new_with_utf8_chars = NULL; */
+/* lean_object *lean4_string_new_with_utf8_chars(lean_object *string) { */
+/*   LEAN4_CHECK_FP_INIT(string_new_with_utf8_chars); */
+/*   GDExtensionStringPtr res = NULL; */
+/*   string_new_with_utf8_chars(&res, lean_string_cstr(string)); */
+/*   lean_object *strObject = lean_alloc_external(get_GDExtensionStringPtr_class(), (void *)res); */
+/*   return lean_io_result_mk_ok(strObject); */
+/* } */
 
 GDExtensionInterfaceStringToLatin1Chars string_to_latin1_chars = NULL;
 lean_object *lean4_string_to_latin1_chars(lean_object *string) {
@@ -190,16 +190,16 @@ lean_object *lean4_string_to_latin1_chars(lean_object *string) {
   return lean_io_result_mk_ok(res);
 }
 
-GDExtensionInterfaceStringToUtf8Chars string_to_utf8_chars = NULL;
-lean_object *lean4_string_to_utf8_chars(lean_object *string) {
-  LEAN4_CHECK_FP_INIT(string_to_utf8_chars);
-  GDExtensionStringPtr gstring = lean_get_external_data(string);
-  GDExtensionInt len = string_to_utf8_chars(&gstring,NULL,0);
-  char buf[len];
-  string_to_utf8_chars(&gstring,buf,len);
-  lean_object *res = lean_mk_string_from_bytes(buf, len);
-  return lean_io_result_mk_ok(res);
-}
+/* GDExtensionInterfaceStringToUtf8Chars string_to_utf8_chars = NULL; */
+/* lean_object *lean4_string_to_utf8_chars(lean_object *string) { */
+/*   LEAN4_CHECK_FP_INIT(string_to_utf8_chars); */
+/*   GDExtensionStringPtr gstring = lean_get_external_data(string); */
+/*   GDExtensionInt len = string_to_utf8_chars(&gstring,NULL,0); */
+/*   char buf[len]; */
+/*   string_to_utf8_chars(&gstring,buf,len); */
+/*   lean_object *res = lean_mk_string_from_bytes(buf, len); */
+/*   return lean_io_result_mk_ok(res); */
+/* } */
 
 /* * Helpers */
 int _initialise_lean_state() {
@@ -248,9 +248,10 @@ GDExtensionBool lean_godot_gdnative_init(
   variant_new_nil = (GDExtensionInterfaceVariantNewNil)p_get_proc_address("variant_new_nil");
 
   string_new_with_latin1_chars = (GDExtensionInterfaceStringNewWithLatin1Chars)p_get_proc_address("string_new_with_latin1_chars");
-  string_new_with_utf8_chars = (GDExtensionInterfaceStringNewWithUtf8Chars)p_get_proc_address("string_new_with_utf8_chars");
+  /* string_new_with_utf8_chars = (GDExtensionInterfaceStringNewWithUtf8Chars)p_get_proc_address("string_new_with_utf8_chars"); */
   string_to_latin1_chars = (GDExtensionInterfaceStringToLatin1Chars)p_get_proc_address("string_to_latin1_chars");
-  string_to_utf8_chars = (GDExtensionInterfaceStringToUtf8Chars)p_get_proc_address("string_to_utf8_chars");
+
+  #include "init.h"
 
 
   // initialise lean

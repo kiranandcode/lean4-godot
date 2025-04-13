@@ -9,23 +9,61 @@ package LeanGodot where
 
 lean_lib LeanGodot where
   srcDir := "lean"
-  moreLeanArgs := #["-D", "godot.onlyBindings=true"]
-  defaultFacets := #[LeanLib.sharedFacet]
+  roots := #[`LeanGodot]
   buildType := .release
+  defaultFacets := #[LeanLib.sharedFacet]
   platformIndependent := true
 
 lean_lib Bindings where
   srcDir := "lean"
-  defaultFacets := #[LeanLib.sharedFacet]
   buildType := .release
-  platformIndependent := true
 
-lean_exe GenerateBindings where
-   srcDir := "scripts"
-   root := `GenerateBindings
 
+def GenerateBindings (pkg: NPackage _package.name) (cmd: String) : FetchM (Job String) := do
+-- first build lean
+  let lib <- LeanGodot.get
+  let dep <- lib.recBuildLean
+  dep.await
+  let genBindingsSrc <- inputTextFile (pkg.srcDir / "scripts" / "GenerateBindings.lean")
+  let fp <- genBindingsSrc.await
+  let args := #["--run", fp.toString, "--", cmd]
+  let output <-
+      IO.Process.output {
+         cmd := "lean", args,
+         env := ← getAugmentedEnv,
+         stdout := .piped,
+         stderr := .inherit
+      }
+  if output.exitCode != 0 then
+     error s! "GenerateBindings failed: {output.stderr}"
+  return (pure output.stdout)
+
+-- lean_lib GenerateBindings where
+--    srcDir := "scripts"
+--    roots := #[`GenerateBindings]
+
+target initHeader (pkg : NPackage _package.name) : FilePath := do
+  let cDir := pkg.buildDir / "c"
+  IO.FS.createDirAll cDir -- ensure output dir exists
+  let outFile := cDir / "init.h"
+  let output <- GenerateBindings pkg "Init"
+  buildFileAfterDep outFile output fun output =>
+    IO.FS.writeFile outFile output
+
+target declarationsHeader (pkg : NPackage _package.name) : FilePath := do
+  -- let exe ← GenerateBindings.fetch -- build and get the path to the executable
+  let cDir := pkg.buildDir / "c"
+  IO.FS.createDirAll cDir -- ensure output dir exists
+  let outFile := cDir / "declarations.h"
+  let output <- GenerateBindings pkg "Declarations"
+  buildFileAfterDep outFile output fun output =>
+    IO.FS.writeFile outFile output
 
 target bindings.c (_pkg : NPackage _package.name) : FilePath := do
+  let declarationsHeader <- declarationsHeader.fetch
+  let initHeader <- initHeader.fetch
+  let _ <- declarationsHeader.await
+  let _ <- initHeader.await
   inputFile "c/bindings.c" true
 
 target gdextension_interface.h (_pkg : NPackage _package.name) : FilePath := do
@@ -36,13 +74,14 @@ target bindings.o (pkg : NPackage _package.name) : FilePath := do
   let gdextension_h <- fetch <| pkg.target ``gdextension_interface.h
   let lean_dir := (<- getLeanIncludeDir).toString
 
+  let c_dir := pkg.buildDir / "c"
   let bindings_o := pkg.buildDir / "bindings.o"
   buildFileAfterDep bindings_o (.collectList [bindings_c, gdextension_h]) fun deps =>
      let bindings_c := deps[0]!
      let gdextension_h := deps[1]!.parent.get!.parent.get!.toString
      compileO
         bindings_o
-        bindings_c #["-I", gdextension_h, "-I", lean_dir, "-epic"]
+        bindings_c #["-I", gdextension_h, "-I", c_dir.toString, "-I", lean_dir, "-fPIC"]
 
 @[default_target]
 extern_lib extension (pkg: NPackage _package.name) := do
