@@ -76,7 +76,9 @@ private def construct_function_binding (tyMap: TypeMap) (declName: Lean.Name) (c
     ",".intercalate (args.map construct_binding_arg)
   let mut stmts := #[]
   let mut boundArgs := args.map (·.fst)
-  stmts := stmts.push s!"LEAN4_CHECK_FP_INIT({cname});"
+  match wrapper with
+  | .None => stmts := stmts.push s!"LEAN4_CHECK_FP_INIT_PURE({cname});"
+  | .IO => stmts := stmts.push s!"LEAN4_CHECK_FP_INIT({cname});"
 
   let resArg := gen_fresh_arg "res" <| boundArgs
   boundArgs := boundArgs.cons resArg
@@ -158,7 +160,10 @@ private def construct_extern_type_init (name: String) (ty: GodotBindingType) : S
   | .Function _args _ret_ty _is_out _wrapper _fp_name => ""
   | .Type =>
     s!"static void lean_godot_{name}_finalizer(void *_obj) \{};
-REGISTER_LEAN_CLASS({name}, lean_godot_{name}_finalizer, noop_foreach)"
+REGISTER_LEAN_CLASS({name}, lean_godot_{name}_finalizer, noop_foreach)
+lean_object * lean_godot_{name}_default() \{
+  return lean_mk_option_some(lean_alloc_external(get_{name}_class(), (void *)NULL));
+}"
 
 
 def buildTyMap (bindingData: Array GodotBinding) : TypeMap :=

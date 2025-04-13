@@ -16,7 +16,10 @@ lean_lib LeanGodot where
 
 lean_lib Bindings where
   srcDir := "lean"
+  roots := #[`Bindings]
   buildType := .release
+  defaultFacets := #[LeanLib.sharedFacet]
+  platformIndependent := true
 
 
 def GenerateBindings (pkg: NPackage _package.name) (cmd: String) : FetchM (Job String) := do
@@ -59,11 +62,17 @@ target declarationsHeader (pkg : NPackage _package.name) : FilePath := do
   buildFileAfterDep outFile output fun output =>
     IO.FS.writeFile outFile output
 
+target utils.h (_pkg : NPackage _package.name) : FilePath := do
+  inputFile "c/utils.h" true
+
+
 target bindings.c (_pkg : NPackage _package.name) : FilePath := do
   let declarationsHeader <- declarationsHeader.fetch
   let initHeader <- initHeader.fetch
   let _ <- declarationsHeader.await
   let _ <- initHeader.await
+  let utils <- utils.h.fetch
+  let _ <- utils.await
   inputFile "c/bindings.c" true
 
 target gdextension_interface.h (_pkg : NPackage _package.name) : FilePath := do
@@ -89,9 +98,11 @@ extern_lib extension (pkg: NPackage _package.name) := do
   let outDir := pkg.buildDir / "lib"
 
   let bindings_o <- fetch <| pkg.target ``bindings.o
-  let some lean_godot_lib := pkg.findLeanLib? ``LeanGodot
-     | error "cannot find lean_lib target"
-  let lean_godot_lib <- lean_godot_lib.recBuildStatic false
+  let LeanGodotDep <- LeanGodot.get
+  let LeanGodotDep <- LeanGodotDep.recBuildStatic false
+  let BindingsDep <- Bindings.get
+  let BindingsDep <- BindingsDep.recBuildStatic false
+
 
   let leanLibDir := (<- getLeanLibDir)
   let leanStaticLibs :=
@@ -101,12 +112,14 @@ extern_lib extension (pkg: NPackage _package.name) := do
 
   buildFileAfterDep (outDir / name) (.collectList [
        bindings_o,
-       lean_godot_lib
+       LeanGodotDep,
+       BindingsDep
    ]) fun data =>
        let bindings_o := data[0]!
        let lean_godot_lib := data[1]!
+       let bindings_lib := data[2]!
        compileSharedLib
          (outDir / name)
          <|
-          #[bindings_o.toString, lean_godot_lib.toString]
+          #[bindings_o.toString, bindings_lib.toString, lean_godot_lib.toString]
           |>.append leanStaticLibs

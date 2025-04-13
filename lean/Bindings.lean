@@ -25,6 +25,18 @@ initialize godotRegistryExt : SimplePersistentEnvExtension GodotBinding (List Go
 def getGodotBindings (env : Environment) : List GodotBinding :=
   godotRegistryExt.getState env
 
+def findGodotType [Monad m] [MonadEnv m] [MonadError m] (decl: Name) : m String := do
+  let env <- getEnv
+  let res := godotRegistryExt.getState env
+         |>.toArray
+         |> buildTyMap
+         |>.get? decl.toString
+  match res with
+  | .some res => return res
+  | .none => throwError s!"reference to {decl.toString} which was not declared as a GodotType"
+
+
+
 syntax (name := godot) "godot " str (ident)? : attr
 syntax (name := lean_godot_out) "@" "out" term : term
 
@@ -69,7 +81,6 @@ def godotAttrImpl : AttributeImpl where
         let id := id.map (·.getId.toString)
 
         let isType := match type with | .sort 1 => true | _ => false
-        -- let onlyBindings? <- LeanGodot.onlyBindings?
 
         -- first extract binding metadata to track across the project
         let binding <- GodotBinding.make declName cname.getString type id
@@ -87,6 +98,26 @@ def godotAttrImpl : AttributeImpl where
   applicationTime := .afterTypeChecking
 initialize registerBuiltinAttribute godotAttrImpl
 
+syntax (name := godotInhabited) "godot_inhabited_type " ident : command
+@[command_elab godotInhabited]
+elab_rules : command
+| `(command| godot_inhabited_type $tyNameRaw:ident) => do
+    let bindings <- resolveGlobalName tyNameRaw.getId
+    if bindings.isEmpty then
+       throwError s!"reference to undefined type ${tyNameRaw}"
+    let (tyName, _) <- pure bindings.head!
+    let mkDefault := Name.str tyName "mkDefault"
+    let name <- findGodotType tyName
+    let binding := TSyntax.mk (Syntax.mkStrLit s!"lean_godot_{name}_default")
+    let mkDefault := mkIdent mkDefault
+    elabCommand (<- `(command|
+       @[extern $binding:str]
+       opaque $mkDefault:ident : Unit -> Option $tyNameRaw
+    ))
+    elabCommand (<- `(command|
+       instance : Inhabited $tyNameRaw where
+          default := match $mkDefault:ident () with | .some v => v | .none => sorry
+    ))
 
 syntax (name := godotOpaque) (Parser.Command.visibility)? "godot_opaque" ident " : " term " := " str : command
 

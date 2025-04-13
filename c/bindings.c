@@ -2,6 +2,7 @@
 #include "godot/gdextension_interface.h"
 #include <stdio.h>
 #include <stdint.h>
+#include "utils.h"
 /* #include "../godot-headers/godot/gdextension_interface.h" */
 
 #define LEAN4_CALL_IO(res,expr) \
@@ -58,7 +59,9 @@ extern void lean_initialize_runtime_module();
 extern void lean_initialize();
 extern void lean_io_mark_end_initialization();
 
+extern lean_object *initialize_Bindings(uint8_t builtin, lean_object *);
 extern lean_object *initialize_LeanGodot(uint8_t builtin, lean_object *);
+
 /* ** Lean4->C bindings */
 extern lean_object *lean_godot_on_initialization(GDExtensionInitializationLevel);
 extern lean_object *lean_godot_on_deinitialization(GDExtensionInitializationLevel);
@@ -68,6 +71,7 @@ extern lean_object *lean_godot_on_deinitialization(GDExtensionInitializationLeve
 /* *** Get Godot Version */
 GDExtensionInterfaceGetGodotVersion get_godot_version = NULL;
 lean_object *lean4_get_version() {
+  printf("[lean-godot] lean4_get_version_called\n");
   GDExtensionGodotVersion version;
   LEAN4_CHECK_FP_INIT(get_godot_version);
   get_godot_version(&version);
@@ -97,7 +101,6 @@ lean_object *lean4_print_error(lean_object *p_description,
               p_line,
               p_editor_notify
   );
-
   return lean_io_result_mk_ok(lean_box(0));
 }
 
@@ -190,24 +193,29 @@ lean_object *lean4_string_to_latin1_chars(lean_object *string) {
   return lean_io_result_mk_ok(res);
 }
 
-/* GDExtensionInterfaceStringToUtf8Chars string_to_utf8_chars = NULL; */
-/* lean_object *lean4_string_to_utf8_chars(lean_object *string) { */
-/*   LEAN4_CHECK_FP_INIT(string_to_utf8_chars); */
-/*   GDExtensionStringPtr gstring = lean_get_external_data(string); */
-/*   GDExtensionInt len = string_to_utf8_chars(&gstring,NULL,0); */
-/*   char buf[len]; */
-/*   string_to_utf8_chars(&gstring,buf,len); */
-/*   lean_object *res = lean_mk_string_from_bytes(buf, len); */
-/*   return lean_io_result_mk_ok(res); */
-/* } */
+GDExtensionInterfaceStringToUtf8Chars string_to_utf8_chars = NULL;
+lean_object *lean4_string_to_utf8_chars(lean_object *string) {
+  LEAN4_CHECK_FP_INIT(string_to_utf8_chars);
+  GDExtensionStringPtr gstring = lean_get_external_data(string);
+  GDExtensionInt len = string_to_utf8_chars(&gstring,NULL,0);
+  char buf[len];
+  string_to_utf8_chars(&gstring,buf,len);
+  lean_object *res = lean_mk_string_from_bytes(buf, len);
+  return res;
+}
+
+void _link_my_bindings_clang_pls() {
+  initialize_Bindings(1, lean_io_mk_world());
+}
 
 /* * Helpers */
 int _initialise_lean_state() {
-  printf("[lean4-godot] calling initialise_lean_state\n");
+  /* printf("[lean4-godot] calling initialise_lean_state\n"); */
   lean_initialize();
   lean_object *res;
 
   uint8_t builtin = 1;
+
   res = initialize_LeanGodot(builtin, lean_io_mk_world());
   if (lean_io_result_is_ok(res)) {
     lean_dec_ref(res);
@@ -217,8 +225,9 @@ int _initialise_lean_state() {
     return 1;
   }
 
+
   lean_io_mark_end_initialization();
-  printf("[lean4-godot] finished initialisation\n");
+  /* printf("[lean4-godot] finished initialisation!\n"); */
   return 0;
 }
 
@@ -228,6 +237,7 @@ void lean4_godot_initialize_callback(void *userdata, GDExtensionInitializationLe
   lean_object *res;
   LEAN4_CALL_IO(res,lean_godot_on_initialization(p_level));
 }
+
 void lean4_godot_deinitialize_callback(void *userdata, GDExtensionInitializationLevel p_level) {
   /* printf("[lean4-godot] deinitialisation level %d\n", p_level); */
   lean_object *res;
@@ -250,16 +260,16 @@ GDExtensionBool lean_godot_gdnative_init(
   string_new_with_latin1_chars = (GDExtensionInterfaceStringNewWithLatin1Chars)p_get_proc_address("string_new_with_latin1_chars");
   /* string_new_with_utf8_chars = (GDExtensionInterfaceStringNewWithUtf8Chars)p_get_proc_address("string_new_with_utf8_chars"); */
   string_to_latin1_chars = (GDExtensionInterfaceStringToLatin1Chars)p_get_proc_address("string_to_latin1_chars");
+  string_to_utf8_chars = (GDExtensionInterfaceStringToUtf8Chars)p_get_proc_address("string_to_utf8_chars");
 
   #include "init.h"
-
 
   // initialise lean
   if(_initialise_lean_state()) {
     printf("[lean4-godot] could not initialise lean4 state\n");
     return false;
   }
-  printf("[lean4-godot] finished lean initialisation");
+  printf("[lean4-godot] finished lean initialisation!!\n");
 
   r_initialization->minimum_initialization_level = GDEXTENSION_INITIALIZATION_CORE;
   r_initialization->userdata = NULL;
