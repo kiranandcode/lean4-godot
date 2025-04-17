@@ -39,9 +39,12 @@ private def construct_out_ty : GodotType -> String
 | .String => s!"char *"
 
 
-private def construct_binding_arg (params: String × GodotType × GodotBindingArgSpecifier) : String :=
+private def construct_binding_arg (params: String × GodotType × GodotBindingArgSpecifier) : Option String :=
    let ⟨name, ty, _⟩ := params
-   s!"{godot_ty_to_ctype ty}{name}"
+   if let .Unit := ty
+   then .some s!"lean_object *{name}"
+   else
+     .some s!"{godot_ty_to_ctype ty}{name}"
 
 private partial def gen_fresh_arg : String -> List String -> String :=
   fun param bound =>
@@ -73,7 +76,7 @@ private def construct_function_binding (tyMap: TypeMap) (declName: Lean.Name) (c
      | .None => godot_ty_to_ctype ret_ty
   let fn_name := LeanGodot.generateExternName declName
   let argsStr :=
-    ",".intercalate (args.map construct_binding_arg)
+    ",".intercalate (args.filterMap construct_binding_arg)
   let mut stmts := #[]
   let mut boundArgs := args.map (·.fst)
   match wrapper with
@@ -99,8 +102,9 @@ private def construct_function_binding (tyMap: TypeMap) (declName: Lean.Name) (c
            boundArgs := boundArgs.cons tmpName
            callParams := callParams.push tmpName
            stmts := stmts.push s!"char *{tmpName} = (char *)lean_string_cstr({name});"
-        | .Bool | .Int _ _ | .Unit =>
+        | .Bool | .Int _ _ =>
           callParams := callParams.push name
+        | .Unit => pure ()
      pure callParams
         
   let outArgs <- do
@@ -121,7 +125,12 @@ private def construct_function_binding (tyMap: TypeMap) (declName: Lean.Name) (c
     else
       let outPty := construct_out_ty ret_ty
       stmts := stmts.push  s!"{outPty}{resArg} = {cname}({outArgs});"
-  if let .Unit := ret_ty then pure ()
+  if let .Unit := ret_ty then
+     match wrapper with
+     | .None => pure ()
+     | .IO =>
+        let retExpr := construct_return_arg_wrapper ret_ty wrapper resArg
+        stmts := stmts.push s!"return {retExpr};"
   else
      let resArg <- do
         match ret_ty with

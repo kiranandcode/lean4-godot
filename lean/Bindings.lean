@@ -5,15 +5,6 @@ import Bindings.Extraction
 import Bindings.Generation
 open Lean Meta Elab Command
 
--- private def LeanGodot.onlyBindings := `godot.onlyBindings
--- def LeanGodot.onlyBindings? [Monad m] [MonadOptions m] : m Bool := do
---    let opts <- getOptions
---    return opts.getBool LeanGodot.onlyBindings
-
--- initialize registerOption LeanGodot.onlyBindings {
---     defValue := false
---   }
-
 initialize godotRegistryExt : SimplePersistentEnvExtension GodotBinding (List GodotBinding) ←
   registerSimplePersistentEnvExtension {
     name := `godotRegistryExt
@@ -107,17 +98,15 @@ elab_rules : command
        throwError s!"reference to undefined type ${tyNameRaw}"
     let (tyName, _) <- pure bindings.head!
     let mkDefault := Name.str tyName "mkDefault"
-    let name <- findGodotType tyName
-    let binding := TSyntax.mk (Syntax.mkStrLit s!"lean_godot_{name}_default")
     let mkDefault := mkIdent mkDefault
     elabCommand (<- `(command|
-       @[extern $binding:str]
-       opaque $mkDefault:ident : Unit -> Option $tyNameRaw
+        axiom $mkDefault:ident : $tyNameRaw
     ))
     elabCommand (<- `(command|
-       instance : Inhabited $tyNameRaw where
-          default := match $mkDefault:ident () with | .some v => v | .none => sorry
+       noncomputable instance : Inhabited $tyNameRaw where
+          default := $mkDefault
     ))
+    
 
 syntax (name := godotOpaque) (Parser.Command.visibility)? "godot_opaque" ident " : " term " := " str : command
 
