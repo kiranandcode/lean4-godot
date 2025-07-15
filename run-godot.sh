@@ -3,7 +3,7 @@
 lake build
 
 if [[ "$(uname)" == "Darwin" ]]; then
-  /Applications/Godot.app/Contents/MacOS/Godot -e .
+  /Applications/Godot.app/Contents/MacOS/Godot -w -e .
 else
-  godot -e .
+  godot -w -e .
 fi
