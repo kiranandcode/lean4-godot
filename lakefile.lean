@@ -110,6 +110,8 @@ extern_lib extension (pkg: NPackage _package.name) := do
       |>.filter (fun file => file.path.extension.isEqSome sharedLibExt)
       |>.map (fun file => file.path.toString)
 
+  let extraArgs := if Platform.isOSX then #["-rpath", leanLibDir.toString] else #[]
+
   buildFileAfterDep (outDir / name) (.collectList [
        bindings_o,
        LeanGodotDep,
@@ -123,3 +125,4 @@ extern_lib extension (pkg: NPackage _package.name) := do
          <|
           #[bindings_o.toString, bindings_lib.toString, lean_godot_lib.toString]
           |>.append leanStaticLibs
+          |>.append extraArgs
