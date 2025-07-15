@@ -29,7 +29,7 @@ def GenerateBindings (pkg: NPackage _package.name) (cmd: String) : FetchM (Job S
   dep.await
   let genBindingsSrc <- inputTextFile (pkg.srcDir / "scripts" / "GenerateBindings.lean")
   let fp <- genBindingsSrc.await
-  let args := #["--run", fp.toString, "--", cmd]
+  let args := #["--run", fp.toString] ++ (if Platform.isOSX then [] else ["--"]) ++ [cmd]
   let output <-
       IO.Process.output {
          cmd := "lean", args,
@@ -105,9 +105,9 @@ extern_lib extension (pkg: NPackage _package.name) := do
 
 
   let leanLibDir := (<- getLeanLibDir)
-  let leanStaticLibs :=
+  let mut leanStaticLibs :=
       (<- leanLibDir.readDir)
-      |>.filter (fun file => file.path.extension.isEqSome "so")
+      |>.filter (fun file => file.path.extension.isEqSome sharedLibExt)
       |>.map (fun file => file.path.toString)
 
   buildFileAfterDep (outDir / name) (.collectList [
