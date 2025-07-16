@@ -6,6 +6,7 @@ package LeanGodot where
   description := "Lean4 bindings to the Godot Game Engine"
   license := "MIT"
   keywords := #["gamedev", "c-bindings"]
+  moreLeanArgs := #["-D", "weak.godot.build_configuration=float_64"]
 
 lean_lib LeanGodot where
   srcDir := "lean"
@@ -20,6 +21,17 @@ lean_lib Bindings where
   buildType := .release
   defaultFacets := #[LeanLib.sharedFacet]
   platformIndependent := true
+
+target extension_api.json (_pkg : NPackage _package.name) : FilePath := do
+  inputFile "godot-headers/extension_api.json" true
+
+lean_lib ExtensionAPI where
+  srcDir := "lean"
+  roots := #[`ExtensionAPI]
+  buildType := .release
+  defaultFacets := #[LeanLib.sharedFacet]
+  platformIndependent := true
+  extraDepTargets := #[`extension_api.json]
 
 
 def GenerateBindings (pkg: NPackage _package.name) (cmd: String) : FetchM (Job String) := do
@@ -74,6 +86,7 @@ target bindings.c (_pkg : NPackage _package.name) : FilePath := do
   let utils <- utils.h.fetch
   let _ <- utils.await
   inputFile "c/bindings.c" true
+
 
 target gdextension_interface.h (_pkg : NPackage _package.name) : FilePath := do
   inputFile "godot-headers/godot/gdextension_interface.h" true
