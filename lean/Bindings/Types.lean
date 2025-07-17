@@ -20,7 +20,7 @@ inductive GodotBindingArgSpecifier where
 deriving Inhabited, Repr
 
 inductive GodotBindingType where
-| Type
+| Type (sz: Nat)
 | Function
    (args: List (String × GodotType × GodotBindingArgSpecifier))
    (retTy: GodotType)

@@ -22,6 +22,7 @@ lean_lib Bindings where
   defaultFacets := #[LeanLib.sharedFacet]
   platformIndependent := true
 
+
 target extension_api.json (_pkg : NPackage _package.name) : FilePath := do
   inputFile "godot-headers/extension_api.json" true
 
@@ -115,6 +116,8 @@ extern_lib extension (pkg: NPackage _package.name) := do
   let LeanGodotDep <- LeanGodotDep.recBuildStatic false
   let BindingsDep <- Bindings.get
   let BindingsDep <- BindingsDep.recBuildStatic false
+  let ExtensionAPI <- ExtensionAPI.get
+  let ExtensionAPI <- ExtensionAPI.recBuildStatic false
 
 
   let leanLibDir := (<- getLeanLibDir)
@@ -128,14 +131,16 @@ extern_lib extension (pkg: NPackage _package.name) := do
   buildFileAfterDep (outDir / name) (.collectList [
        bindings_o,
        LeanGodotDep,
-       BindingsDep
+       BindingsDep,
+       ExtensionAPI
    ]) fun data =>
        let bindings_o := data[0]!
        let lean_godot_lib := data[1]!
        let bindings_lib := data[2]!
+       let extensions_lib := data[3]!
        compileSharedLib
          (outDir / name)
          <|
-          #[bindings_o.toString, bindings_lib.toString, lean_godot_lib.toString]
+          #[bindings_o.toString, extensions_lib.toString, bindings_lib.toString, lean_godot_lib.toString]
           |>.append leanStaticLibs
           |>.append extraArgs

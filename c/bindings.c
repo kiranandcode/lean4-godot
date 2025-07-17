@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "utils.h"
 /* #include "../godot-headers/godot/gdextension_interface.h" */
+/* * Macros */
 
 #define LEAN4_CALL_IO(res,expr) \
   do { \
@@ -41,8 +42,23 @@
   }
 
 /* * External Functions */
+/* ** Builtins */
+GDExtensionInterfaceMemAlloc mem_alloc = NULL;
+GDExtensionInterfaceMemFree mem_free = NULL;
+GDExtensionInterfaceVariantGetPtrDestructor variant_get_ptr_destructor = NULL;
+GDExtensionInterfaceVariantGetType variant_get_type = NULL;
 /* ** Utilities */
 inline static void noop_foreach(void *mod, b_lean_obj_arg fn) {}
+
+inline static void generic_variant_finalizer(void *obj) {
+  if(obj == NULL) return;
+  if(variant_get_type != NULL && variant_get_ptr_destructor != NULL) {
+     GDExtensionVariantType ty = variant_get_type(obj);
+     GDExtensionPtrDestructor destructor = variant_get_ptr_destructor(ty);
+     if(destructor != NULL) { destructor(obj); }
+  }
+  if(mem_free != NULL) { mem_free(obj); }
+}
 
 /* ** Class Declarations */
 
@@ -54,6 +70,7 @@ extern void lean_initialize();
 extern void lean_io_mark_end_initialization();
 
 extern lean_object *initialize_Bindings(uint8_t builtin, lean_object *);
+extern lean_object *initialize_ExtensionAPI(uint8_t builtin, lean_object *);
 extern lean_object *initialize_LeanGodot(uint8_t builtin, lean_object *);
 
 /* ** Lean4->C bindings */
@@ -82,15 +99,16 @@ GDExtensionInterfaceStringToUtf8Chars string_to_utf8_chars = NULL;
 lean_object *lean4_string_to_utf8_chars(lean_object *string) {
   LEAN4_CHECK_FP_INIT(string_to_utf8_chars);
   GDExtensionStringPtr gstring = lean_get_external_data(string);
-  GDExtensionInt len = string_to_utf8_chars(&gstring,NULL,0);
+  GDExtensionInt len = string_to_utf8_chars(gstring,NULL,0);
   char buf[len];
-  string_to_utf8_chars(&gstring,buf,len);
+  string_to_utf8_chars(gstring,buf,len);
   lean_object *res = lean_mk_string_from_bytes(buf, len);
   return res;
 }
 
 void _link_my_bindings_clang_pls() {
   initialize_Bindings(1, lean_io_mk_world());
+  initialize_ExtensionAPI(1, lean_io_mk_world());
 }
 
 /* * Helpers */
@@ -138,7 +156,10 @@ GDExtensionBool lean_godot_gdnative_init(
   get_godot_version = (GDExtensionInterfaceGetGodotVersion)p_get_proc_address("get_godot_version");
 
   string_to_utf8_chars = (GDExtensionInterfaceStringToUtf8Chars)p_get_proc_address("string_to_utf8_chars");
-
+  mem_alloc = (GDExtensionInterfaceMemAlloc)p_get_proc_address("mem_alloc");
+  mem_free = (GDExtensionInterfaceMemFree)p_get_proc_address("mem_free");
+  variant_get_type = (GDExtensionInterfaceVariantGetType)p_get_proc_address("variant_get_type");
+  variant_get_ptr_destructor = (GDExtensionInterfaceVariantGetPtrDestructor)p_get_proc_address("variant_get_ptr_destructor");
   #include "init.h"
 
   // initialise lean

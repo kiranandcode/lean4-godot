@@ -1,5 +1,6 @@
 import Lean
 import Bindings.Types
+import ExtensionAPI
 open Lean Meta Elab Command
 
 def Lean.Name.basename : Name -> String
@@ -59,7 +60,11 @@ def extractGodotBindingType [Monad m] [MonadError m] (e: Expr) (id: Option Strin
          return GodotBindingType.Function (acc.reverse) retTy isOut (.None) id
       | _ => throwError "[loop] invalid binding type {repr ty} (acc:={repr acc})"
   match e with
-  | .sort 1 => pure GodotBindingType.Type
+  | .sort 1 =>
+     if let .some id := id.bind ExtensionAPI.Json.builtin_class_sizes.get?
+     then
+         return GodotBindingType.Type (id.toNat)
+     else throwError "declared Opaque Godot Type {id} however size is not known by API"
   | .forallE (name: Name) ty body _info => do
       let (.str .anonymous name) := name
          | throwError "[extractGodotBindingType] all bindings must be named"

@@ -23,7 +23,7 @@ def findGodotType [Monad m] [MonadEnv m] [MonadError m] (decl: Name) : m String 
          |> buildTyMap
          |>.get? decl.toString
   match res with
-  | .some res => return res
+  | .some (res, _) => return res
   | .none => throwError s!"reference to {decl.toString} which was not declared as a GodotType"
 
 
