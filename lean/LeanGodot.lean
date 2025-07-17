@@ -48,9 +48,6 @@ instance : ToString GDVariant where
    toString := to_string
 end GDVariant
 
-
-
-
 @[export lean_godot_on_initialization]
 def on_initialization (lvl: Initialization.Level) : IO Unit := do
   println! "[lean4-godot] on_initialisation called!"
