@@ -44,16 +44,21 @@ end Nil
 -- @[godot "variant_destroy" GDExtensionInterfaceVariantDestroy]
 -- opaque destroy: (self: GDVariant) -> IO Unit
 
-@[godot "variant_stringify" GDExtensionInterfaceVariantStringify]
-private opaque stringify_internal:
-   (p_self: @& GDVariant) ->
-   (r_ret: @& GDString) ->
-   IO Unit
-def to_string (variant: GDVariant) : IO String := do
-   println! "to string reached!"
-   let str := GDString.mk ""
-   stringify_internal variant str
-   return (GDString.to_string str)
+-- @[godot "variant_stringify" GDExtensionInterfaceVariantStringify]
+-- private opaque stringify_internal:
+--    (p_self: @& GDVariant) ->
+--    (r_ret: @& GDString) ->
+--    IO Unit
+-- def to_string (variant: GDVariant) : IO String := do
+--    println! "to string reached!"
+--    let str := GDString.mk ""
+--    stringify_internal variant str
+--    return (GDString.to_string str)
+@[extern "lean4_variant_stringify"]
+opaque to_string: (p_variant: @& GDVariant) -> String
+
+instance : ToString GDVariant where
+   toString := to_string
 end GDVariant
 
 
@@ -73,8 +78,7 @@ def on_initialization (lvl: Initialization.Level) : IO Unit := do
   gd_eprint! "creating a nil:"
   let v <- GDVariant.Nil.mk ()
   gd_eprint! "converting to string"
-  let _v_str <- v.to_string
-  gd_eprint! "nil as string is  \"{_v_str}̈\""
+  gd_eprint! "nil as string is  \"{v}\""
 
   -- -- let g_str <- GDString.of_string "hello"
   -- gd_eprint! "converted to gdstring object"

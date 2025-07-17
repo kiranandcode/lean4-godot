@@ -78,7 +78,6 @@ extern lean_object *lean_godot_on_initialization(GDExtensionInitializationLevel)
 extern lean_object *lean_godot_on_deinitialization(GDExtensionInitializationLevel);
 
 /* ** C->Lean4 bindings */
-
 /* *** Get Godot Version */
 GDExtensionInterfaceGetGodotVersion get_godot_version = NULL;
 lean_object *lean4_get_version() {
@@ -104,6 +103,27 @@ lean_object *lean4_string_to_utf8_chars(lean_object *string) {
   string_to_utf8_chars(gstring,buf,len);
   lean_object *res = lean_mk_string_from_bytes(buf, len);
   return res;
+}
+
+GDExtensionInterfaceVariantStringify variant_stringify = NULL;
+lean_object *lean4_variant_stringify(lean_object *variant) {
+  LEAN4_CHECK_FP_INIT_PURE(variant_stringify);
+  LEAN4_CHECK_FP_INIT_PURE(string_new_with_utf8_chars);
+  LEAN4_CHECK_FP_INIT_PURE(mem_alloc);
+  LEAN4_CHECK_FP_INIT_PURE(mem_free);
+
+  GDExtensionVariantPtr p_self_internal = (GDExtensionVariantPtr)lean_get_external_data(variant);
+  GDExtensionStringPtr r_ret_internal = (GDExtensionStringPtr)mem_alloc(8);
+  string_new_with_utf8_chars(r_ret_internal, "");
+  variant_stringify(p_self_internal, r_ret_internal);
+
+  GDExtensionInt len = string_to_utf8_chars(r_ret_internal,NULL,0);
+  char buf[len];
+  string_to_utf8_chars(r_ret_internal,buf,len);
+
+  mem_free(r_ret_internal);
+  lean_object *res = lean_mk_string_from_bytes(buf, len);
+  return res;  
 }
 
 void _link_my_bindings_clang_pls() {
@@ -160,6 +180,7 @@ GDExtensionBool lean_godot_gdnative_init(
   mem_free = (GDExtensionInterfaceMemFree)p_get_proc_address("mem_free");
   variant_get_type = (GDExtensionInterfaceVariantGetType)p_get_proc_address("variant_get_type");
   variant_get_ptr_destructor = (GDExtensionInterfaceVariantGetPtrDestructor)p_get_proc_address("variant_get_ptr_destructor");
+  variant_stringify = (GDExtensionInterfaceVariantStringify)p_get_proc_address("variant_stringify");
   #include "init.h"
 
   // initialise lean
