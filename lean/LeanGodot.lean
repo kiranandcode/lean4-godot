@@ -41,19 +41,6 @@ namespace Nil
 opaque mk: (_unused: Unit) -> IO (@out GDVariant)
 end Nil
 
--- @[godot "variant_destroy" GDExtensionInterfaceVariantDestroy]
--- opaque destroy: (self: GDVariant) -> IO Unit
-
--- @[godot "variant_stringify" GDExtensionInterfaceVariantStringify]
--- private opaque stringify_internal:
---    (p_self: @& GDVariant) ->
---    (r_ret: @& GDString) ->
---    IO Unit
--- def to_string (variant: GDVariant) : IO String := do
---    println! "to string reached!"
---    let str := GDString.mk ""
---    stringify_internal variant str
---    return (GDString.to_string str)
 @[extern "lean4_variant_stringify"]
 opaque to_string: (p_variant: @& GDVariant) -> String
 
@@ -72,9 +59,6 @@ def on_initialization (lvl: Initialization.Level) : IO Unit := do
   gd_print_error! "error from Lean"
   let str := GDString.mk "random"
   gd_eprint! "retrieved {str}"
-  -- gd_print_error! s!"retrieved {_str.to_string}"
-  -- gd_print_warning! "warning from Lean"
-  -- gd_eprint! "script error from Lean"
   gd_eprint! "creating a nil:"
   let v <- GDVariant.Nil.mk ()
   gd_eprint! "converting to string"
