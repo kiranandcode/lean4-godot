@@ -91,7 +91,7 @@ def build_fn_stx (stx: Syntax) (id: Ident) (msg: TSyntax `term) (notify: TSyntax
 elab_rules : term
 | `(term| gd_print_generic%$stx $id:ident $msg:term) => do
    let stx <-
-      build_fn_stx stx id msg (TSyntax.mk (mkCIdent ``false))
+      build_fn_stx stx id msg (TSyntax.mk (mkCIdent ``true))
    Term.elabTerm stx none
 
 end Macro

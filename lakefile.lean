@@ -75,6 +75,44 @@ target declarationsHeader (pkg : NPackage _package.name) : FilePath := do
   buildFileAfterDep outFile output fun output =>
     IO.FS.writeFile outFile output
 
+target builtinTypeSizesHeader (pkg : NPackage _package.name) : FilePath := do
+  -- let exe ← GenerateBindings.fetch -- build and get the path to the executable
+  let cDir := pkg.buildDir / "c"
+  IO.FS.createDirAll cDir -- ensure output dir exists
+  let outFile := cDir / "builtin_type_sizes.h"
+  let output <- GenerateBindings pkg "BuiltinTypesSizes"
+  buildFileAfterDep outFile output fun output =>
+    IO.FS.writeFile outFile output
+
+target builtinTypeDestructorDeclsHeader (pkg : NPackage _package.name) : FilePath := do
+  -- let exe ← GenerateBindings.fetch -- build and get the path to the executable
+  let cDir := pkg.buildDir / "c"
+  IO.FS.createDirAll cDir -- ensure output dir exists
+  let outFile := cDir / "builtin_type_destructor_decl.h"
+  let output <- GenerateBindings pkg "BuiltinTypesDestructorDecls"
+  buildFileAfterDep outFile output fun output =>
+    IO.FS.writeFile outFile output
+
+target builtinTypeClassDeclsHeader (pkg : NPackage _package.name) : FilePath := do
+  -- let exe ← GenerateBindings.fetch -- build and get the path to the executable
+  let cDir := pkg.buildDir / "c"
+  IO.FS.createDirAll cDir -- ensure output dir exists
+  let outFile := cDir / "builtin_type_class_decl.h"
+  let output <- GenerateBindings pkg "BuiltinTypesClassDecls"
+  buildFileAfterDep outFile output fun output =>
+    IO.FS.writeFile outFile output
+
+target builtinTypeConversionDeclsHeader (pkg : NPackage _package.name) : FilePath := do
+  -- let exe ← GenerateBindings.fetch -- build and get the path to the executable
+  let cDir := pkg.buildDir / "c"
+  IO.FS.createDirAll cDir -- ensure output dir exists
+  let outFile := cDir / "builtin_type_conversion_decl.h"
+  let output <- GenerateBindings pkg "BuiltinTypesConversionDecls"
+  buildFileAfterDep outFile output fun output =>
+    IO.FS.writeFile outFile output
+
+
+
 target utils.h (_pkg : NPackage _package.name) : FilePath := do
   inputFile "c/utils.h" true
 
@@ -82,8 +120,16 @@ target utils.h (_pkg : NPackage _package.name) : FilePath := do
 target bindings.c (_pkg : NPackage _package.name) : FilePath := do
   let declarationsHeader <- declarationsHeader.fetch
   let initHeader <- initHeader.fetch
+  let builtinTypeSizesHeader <- builtinTypeSizesHeader.fetch
+  let builtinTypeDestructorDeclsHeader <- builtinTypeDestructorDeclsHeader.fetch
+  let builtinTypeClassDeclsHeader <- builtinTypeClassDeclsHeader.fetch
+  let builtinTypeConversionDeclsHeader <- builtinTypeConversionDeclsHeader.fetch
   let _ <- declarationsHeader.await
   let _ <- initHeader.await
+  let _ <- builtinTypeSizesHeader.await
+  let _ <- builtinTypeDestructorDeclsHeader.await
+  let _ <- builtinTypeClassDeclsHeader.await
+  let _ <- builtinTypeConversionDeclsHeader.await
   let utils <- utils.h.fetch
   let _ <- utils.await
   inputFile "c/bindings.c" true

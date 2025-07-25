@@ -1,0 +1,152 @@
+* Notes
+- builtin class sizes
+- builtin class member offsets
+  classes:
+  - name
+  - members
+    - member: "x"
+    - offset: 0
+    - meta: float
+- global enums:
+  - name: "Side"
+  - values:
+    - name: "SIDE_LEFT"
+    - value: 0
+- utility_functions
+  - name: "sin"
+  - return_type: "float"
+  - category: "maths"
+  - is_vararg: false
+  - hash: 81208102
+  - arguments:
+    - name: "angle_rad"
+    - type: "float"
+- builtin_classes
+  - name: "Nil"
+  - is_keyed: false
+  - indexing_return_type: "int"
+  - has_destructor: false
+  - operators:
+    - name: "=="
+    - right_type: "Variant"
+    - return_type: "bool"
+  - constructors:
+    - index: 1
+    - arguments:
+      - name: "from"
+      - type: "Variant"
+  - methods:
+    - name: "casecmp_to"
+    - return_type: "int"
+    - is_vararg: false
+    - is_const: true
+    - is_static: false
+    - hash: 120128012
+    - arguments:
+      - name: "to"
+      - type: "String"
+  - constants:
+    - name: "AXIS_X"
+    - type: "int"
+    - value: "0"
+  - enums:
+    - name: "Axis"
+    - values:
+      - name: "AXIS_X"
+      - value: 0
+- classes
+  - name: "AESContext"
+  - is_refcounted: true
+  - is_instantiable: true
+  - inherits: RefCounted
+  - api_type: core
+  - enums:
+    - name: "Axis"
+    - is_bitfield: false
+    - values:
+      - name: "AXIS_X"
+      - value: 0
+  - methods:
+    - name: "start"
+    - is_const: false
+    - is_vararg: false
+    - is_static: false
+    - return_type: "int"
+    - hash: 120128012
+    - arguments:
+      - name: "to"
+      - type: "String"
+  - properties:
+    - type: "Rect2i"
+    - name: "region"
+    - setter: "set_region"
+    - getter: "get_region"
+  - signals:
+    - name: "sprite_frames_changed"
+- singletons
+  - name: performance
+  - type: performance
+    
+** Operations
+*** variant_new_copy
+*** variant_new_nil: &uninit variant
+*** variant_destroy: &variant
+*** variant_call: &variant -> &StringName -> List Variant -> &uninit out Variant -> &uninit out CallError
+*** variant_call_static: VariantType -> &StringName -> List Variant
+*** variant_evaluate: VariantOp -> &Variant -> &Variant -> &unint out Variant -> &out bool
+*** variant_set: &Variant -> &Variant -> &Variant -> &out bool
+*** variant_set_named: &Variant -> &StringName -> &Variant -> &valid bool
+*** variant_set_keyed: &Variant -> &Variant -> &Variant -> &valid bool
+*** variant_set_indexed: &Variant -> int -> &Variant -> &valid bool -> &valid bool
+*** variant_get: &Variant -> &Variant -> (v: &uninit Variant) -> (vld: &valid bool) -> Option Variant (v if vld)
+*** variant_get_named: &Variant -> &StringName -> &uninit Variant -> (vld: &valid bool)
+*** variant_get_keyed: &Variant -> &uninit Variant -> &Variant -> &valid bool
+*** variant_get_indexed: &Variant -> int -> &uninit Variant -> &Variant -> &valid bool -> &valid bool
+*** variant_hash: &Variant -> Int
+*** variant_recursive_hash: &Variant -> Int -> Int
+*** variant_hash_compare: &Variant -> &Variant -> Bool
+*** variant_booleanize: &Variant -> bool
+*** variant_duplicate: &Variant -> (v: &uninit Variant) -> bool -> v
+*** variant_stringify: &Variant -> (v: &out String)
+*** variant_get_type: &Variant -> VariantType
+*** variant_has_method: &Variant -> &StringName -> bool
+*** variant_has_member: &Variant -> &StringName -> bool
+*** variant_has_key: &Variant -> &Variant -> (&valid: Bool) -> Bool
+*** variant_get_type_name: &Variant -> &out uninit String
+*** variant_can_convert: VariantType -> VariantType
+*** get_variant_to_type_constructor: VariantType -> Fn (ExtensionTypeFromVariantConstructor)
+*** variant_get_ptr_operator_evaluator: VariantOp -> &Variant -> &variant -> Fn (ExtensionPtrOperatorEvaluator)
+*** variant_get_ptr_builtin_method: VariantType -> &StringName -> Int -> Fn (ExtensionPtrBuiltinMethod)
+*** variant_get_ptr_constructor: VariantType -> int -> Fn (ExtensionPtrConstructor)
+*** variant_get_ptr_destructor: VariantType -> Fn (ExtensionPtrDestructor)
+*** variant_get_ptr_setter: VariantType -> &StringName -> Fn (ExtensionPtrSetter)
+*** variant_get_ptr_getter: VariantType -> &StringName -> Fn (ExtensionPtrGetter)
+*** variant_get_ptr_indexed_setter: VariantType -> Fn (ExtensionPtrIndexedSetter)
+*** variant_get_ptr_indexed_getter: VariantType -> Fn (ExtensionPtrIndexedGetter)
+*** variant_get_ptr_keyed_setter: VariantType -> Fn (ExtensionPtrKeyedSetter)
+*** variant_get_ptr_keyed_getter: VariantType -> Fn (ExtensionPtrKeyedGetter)
+*** variant_get_constant_value: VariantType -> &StringName -> (&out uninit Variant)
+*** variant_get_ptr_utility_function: &StringName -> Int -> Fn (ExtensionPtrUtility)
+*** string_name_new_with_latin1_chars: &unint StringName -> String
+
+*** object_method_bind_call: &MethodBind -> &Object -> List (Variant) -> &out unint Variant -> &error CallError
+*** object_method_bind_ptrcall: &MethodBind -> &Object -> List Variant -> &uniit out Variant
+*** object_destroy: &Object -> void
+*** global_get_singleton: &StringName -> Object
+*** TODO object_get_instance_binding: &Object -> LibraryToken -> &struct InstanceBindingCallbacks
+*** TODO object_set_instance_binding: &Object -> LibraryToken -> void * (instance binding) -> &struct InstanceBindingCallbacks
+*** object_free_instance_binding: &Object -> LibraryToken
+*** object_set_instance: &Object -> &StringName -> &ExtensionClassInstance
+*** object_get_class_name: &Object -> LibraryToken -> &unint out StringName -> (out bool)
+*** TODO callable_custom_create: &uninit Type -> info
+*** classdb_construct_object: &StringName -> Object
+*** classdb_get_method_bind: &StringName -> &StringName -> Int -> Fn (MethodBind)
+*** classdb_register_extension_class: LibraryToken -> &StringName -> &StringName -> &struct ClassCreationInfo
+*** classdb_register_extension_class2: LibraryToken -> &StringName -> &StringName -> &struct ExtensionClassCreationInfo2
+*** classdb_register_extension_class_method: LibraryToken -> &StringName -> &struct ClassMethodInfo
+*** classdb_register_extension_class_property: LibraryToken -> &StringName -> &ExtensionPropertyInfo -> &StringName -> &StringName
+
+
+
+* TODO Generate types for builtin class sizes
+* TODO Generate class member offsets?

@@ -65,7 +65,7 @@ private partial def jsonToExpr : Lean.Json -> Lean.Meta.MetaM Lean.Expr := fun j
     let elems <- (Meta.mkListLit StringxJson kvPairs)
     pure $ mkApp (mkConst `Lean.Json.mkObj) elems
 
-def load_extension_api_data : Lean.Meta.MetaM Lean.Json := do 
+def load_extension_api_data : Lean.Meta.MetaM Lean.Json := do
    let contents <- IO.FS.readFile "godot-headers/extension_api.json"
    let res <- match Lean.Json.parse contents with
       | .ok res => pure res
@@ -96,14 +96,29 @@ def make_static_hashmap (sizes: List (Lean.TSyntax `term × Lean.TSyntax `term))
 
 abbrev ExtractionFunction := Lean.Json -> Lean.Meta.MetaM (Lean.TSyntax `term)
 
+def extract_str_field_runtime (field: String) : Lean.Json -> String := fun obj =>
+    let term := obj.getObjValD field |>.getStrD
+    term
+
 def extract_str_field (field: String) : ExtractionFunction := fun obj => do
     let term := obj.getObjValD field |>.getStrD |> Lean.Syntax.mkStrLit
     `(term| $term)
+
+def extract_int_field_runtime (field: String) : Lean.Json -> Int := fun obj =>
+    let term := obj.getObjValD field |>.getIntD
+    term
 
 def extract_int_field (field: String) : ExtractionFunction := fun obj => do
     let term := obj.getObjValD field |>.getIntD |>.repr |> Lean.Syntax.mkNumLit
     `(term| $term)
 
+def extract_keyed_map_using_runtime (extract: Lean.Json -> A) : Lean.Json -> Std.HashMap String A := fun obj =>
+  let keyed_map := obj |>.getListD
+       |>.map (fun obj =>
+          let name := obj.getObjValD "name" |>.getStrD
+          let operator := extract obj
+          (name, operator))
+  Std.HashMap.ofList keyed_map
 
 def extract_keyed_map_using (extract: ExtractionFunction) : ExtractionFunction := fun obj => do
   let keyed_map <- obj |>.getListD
@@ -112,6 +127,28 @@ def extract_keyed_map_using (extract: ExtractionFunction) : ExtractionFunction :
           let operator <- extract obj
           pure (<- `(term| $name), <- `(term| $operator)))
   make_static_hashmap keyed_map
+
+def extract_function_runtime : Lean.Json -> Types.Function := fun obj =>
+  let return_type :=
+      if let .some rety := obj.getObjVal? "return_type" |>.toOption
+      then rety |>.getStrD |> Option.some
+      else if let .some rety := obj.getObjVal? "return_value" |>.toOption
+      then rety|>.getObjValD "type" |>.getStrD |> Option.some
+      else Option.none
+  let category := obj.getObjValD "category" |>.getStrD
+  let is_vararg := obj.getObjValD "is_vararg" |>.getBoolD
+  let is_const := obj.getObjValD "is_const" |>.getBoolD
+  let is_static := obj.getObjValD "is_static" |>.getBoolD
+  let is_virtual := obj.getObjValD "is_virtual" |>.getBoolD
+  let hash := obj.getObjValD "hash" |>.getIntD |>.toNat
+  let arguments := obj.getObjValD "arguments" |>.getListD
+      |>.map (fun obj =>
+          let name := obj.getObjValD "name" |>.getStrD
+          let type := obj.getObjValD "type" |>.getStrD
+          ExtensionAPI.Types.FunctionArgument.mk name type
+      )
+  ExtensionAPI.Types.Function.mk
+             return_type category is_vararg is_const is_static is_virtual hash arguments
 
 def extract_function : ExtractionFunction := fun obj => do
   let return_type <-
@@ -145,6 +182,17 @@ def extract_function_argument : ExtractionFunction := fun obj => do
   let type := obj.getObjValD "type" |>.getStrD |> Lean.Syntax.mkStrLit
   `(term| ExtensionAPI.Types.FunctionArgument.mk $name $type)
 
+def extract_enum_runtime : Lean.Json -> Types.Enum := fun obj =>
+  let is_bitfield := obj.getObjValD "is_bitfield" |>.getBoolD
+  let values := obj.getObjValD "values" |>.getListD
+     |>.map (fun obj =>
+         let name := obj.getObjValD "name" |>.getStrD
+         let value := obj.getObjValD "value" |>.getIntD |>.toNat
+         (name, value)
+     )
+  let values := Std.HashMap.ofList values
+  ExtensionAPI.Types.Enum.mk is_bitfield values
+
 def extract_enum : ExtractionFunction := fun obj => do
   let is_bitfield := obj.getObjValD "is_bitfield" |>.getBoolD |> Lean.Syntax.mkBoolLit
   let values <- obj.getObjValD "values" |>.getListD
@@ -167,10 +215,21 @@ def extract_member_offset_map : ExtractionFunction := fun obj => do
   let members <- make_static_hashmap members
   `(term| $members)
 
+def extract_constant_runtime: Lean.Json -> Types.Constant := fun obj =>
+  let type := obj.getObjValD "type" |>.getStrD
+  let value := obj.getObjValD "value" |>.getStrD
+  ExtensionAPI.Types.Constant.mk type value
+
 def extract_constant: ExtractionFunction := fun obj =>
   let type := obj.getObjValD "type" |>.getStrD |> Lean.Syntax.mkStrLit
   let value := obj.getObjValD "value" |>.getStrD |> Lean.Syntax.mkStrLit
   `(term| ExtensionAPI.Types.Constant.mk $type $value)
+
+def extract_property_runtime: Lean.Json -> Types.Property := fun obj =>
+  let type := obj.getObjValD "type" |>.getStrD
+  let setter := obj.getObjValD "setter" |>.getStrD
+  let getter := obj.getObjValD "getter" |>.getStrD
+  Types.Property.mk type setter getter
 
 def extract_property: ExtractionFunction := fun obj =>
   let type := obj.getObjValD "type" |>.getStrD |> Lean.Syntax.mkStrLit
@@ -178,15 +237,30 @@ def extract_property: ExtractionFunction := fun obj =>
   let getter := obj.getObjValD "getter" |>.getStrD |> Lean.Syntax.mkStrLit
   `(term| ExtensionAPI.Types.Property.mk $type $setter $getter)
 
+def extract_operator_runtime : Lean.Json -> Types.Operator := fun obj =>
+  let right_type := obj.getObjValD "right_type" |>.getStrD
+  let return_type := obj.getObjValD "return_type" |>.getStrD
+  ExtensionAPI.Types.Operator.mk right_type return_type
+
 def extract_operator : ExtractionFunction := fun obj => do
   let right_type := obj.getObjValD "right_type" |>.getStrD |> Lean.Syntax.mkStrLit
   let return_type := obj.getObjValD "return_type" |>.getStrD |> Lean.Syntax.mkStrLit
   `(term| ExtensionAPI.Types.Operator.mk $right_type $return_type)
 
+def extract_constructor_runtime : Lean.Json -> Types.Constructor := fun obj =>
+  let index := obj.getObjValD "index" |>.getIntD |>.toNat
+  let arguments := obj.getObjValD "arguments" |>.getListD
+     |>.map (fun obj =>
+         let name := obj.getObjValD "name" |>.getStrD
+         let type := obj.getObjValD "type" |>.getStrD
+         ExtensionAPI.Types.FunctionArgument.mk name type
+     )
+  ExtensionAPI.Types.Constructor.mk index arguments
+
 def extract_constructor : ExtractionFunction := fun obj => do
   let index := obj.getObjValD "index" |>.getIntD |>.toNat |> Lean.Syntax.mkNatLit
   let arguments <- obj.getObjValD "arguments" |>.getListD
-     |>.mapM (fun obj => 
+     |>.mapM (fun obj =>
          let name := obj.getObjValD "name" |>.getStrD |> Lean.Syntax.mkStrLit
          let type := obj.getObjValD "type" |>.getStrD |> Lean.Syntax.mkStrLit
          `(term| ExtensionAPI.Types.FunctionArgument.mk $name $type)
@@ -194,15 +268,40 @@ def extract_constructor : ExtractionFunction := fun obj => do
   let arguments := Lean.Syntax.TSepArray.ofElems arguments.toArray
   `(term| ExtensionAPI.Types.Constructor.mk $index [$arguments,*])
 
+def extract_signal_arguments_runtime : Lean.Json -> List Types.FunctionArgument := fun obj =>
+  let arguments := obj.getObjValD "arguments" |>.getListD
+     |>.map (fun obj =>
+         let name := obj.getObjValD "name" |>.getStrD
+         let type := obj.getObjValD "type" |>.getStrD
+         ExtensionAPI.Types.FunctionArgument.mk name type
+     )
+  arguments
+
 def extract_signal_arguments : ExtractionFunction := fun obj => do
   let arguments <- obj.getObjValD "arguments" |>.getListD
-     |>.mapM (fun obj => 
+     |>.mapM (fun obj =>
          let name := obj.getObjValD "name" |>.getStrD |> Lean.Syntax.mkStrLit
          let type := obj.getObjValD "type" |>.getStrD |> Lean.Syntax.mkStrLit
          `(term| ExtensionAPI.Types.FunctionArgument.mk $name $type)
      )
   let arguments := Lean.Syntax.TSepArray.ofElems arguments.toArray
   `(term| [$arguments,*])
+
+def extract_builtin_class_runtime (obj: Lean.Json) : Types.BuiltinClass :=
+  let indexing_return_type :=
+     obj.getObjVal? "indexing_return_type" |>.toOption
+     |>.map (·.getStrD)
+  let is_keyed := obj.getObjValD "is_keyed" |>.getBoolD
+  let members := obj.getObjValD "members" |> extract_keyed_map_using_runtime (extract_str_field_runtime "type")
+  let constants := obj.getObjValD "constants" |> extract_keyed_map_using_runtime extract_constant_runtime
+  let enums := obj.getObjValD "enums" |> extract_keyed_map_using_runtime extract_enum_runtime
+  let operators := obj.getObjValD "operators" |> extract_keyed_map_using_runtime extract_operator_runtime
+  let constructors := obj.getObjValD "constructors" |>.getListD
+       |>.map extract_constructor_runtime
+  let methods := obj.getObjValD "methods" |> extract_keyed_map_using_runtime extract_function_runtime
+  let has_destructor := obj.getObjValD "has_destructor" |>.getBoolD
+
+  Types.BuiltinClass.mk indexing_return_type is_keyed members constants enums operators constructors methods has_destructor
 
 def extract_builtin_class (obj: Lean.Json) : Lean.Meta.MetaM (Lean.TSyntax `term) := do
   let indexing_return_type <-
@@ -225,6 +324,22 @@ def extract_builtin_class (obj: Lean.Json) : Lean.Meta.MetaM (Lean.TSyntax `term
         ExtensionAPI.Types.BuiltinClass.mk
            $indexing_return_type $is_keyed $members $constants $enums $operators [$constructors,*] $methods $has_destructor
     )
+
+def extract_class_runtime (obj: Lean.Json) : Types.Class :=
+  let is_refcounted := obj.getObjValD "is_refcounted" |>.getBoolD
+  let is_instantiable := obj.getObjValD "is_instantiable" |>.getBoolD
+  let inherits := obj.getObjValD "inherits" |>.getStrD
+  let api_type := obj.getObjValD "api_type" |>.getStrD
+  let constants := obj.getObjValD "constants" |> extract_keyed_map_using_runtime (fun obj =>
+     let value := obj.getObjValD "value" |>.getIntD |>.repr
+     value
+  )
+  let enums :=  obj.getObjValD "enums" |> extract_keyed_map_using_runtime extract_enum_runtime
+  let methods := obj.getObjValD "methods" |> extract_keyed_map_using_runtime extract_function_runtime
+  let signals := obj.getObjValD "signals" |> extract_keyed_map_using_runtime extract_signal_arguments_runtime
+  let properties := obj.getObjValD "properties" |> extract_keyed_map_using_runtime extract_property_runtime
+  ExtensionAPI.Types.Class.mk
+           is_refcounted is_instantiable inherits api_type constants enums methods signals properties
 
 def extract_class (obj: Lean.Json) : Lean.Meta.MetaM (Lean.TSyntax `term) := do
   let is_refcounted := obj.getObjValD "is_refcounted" |>.getBoolD |> Lean.Syntax.mkBoolLit
@@ -301,6 +416,13 @@ elab_rules : command
           pure (extension_api_data.getObjValD "native_structures")
        let native_structures <- liftTermElabM $ native_structures |> extract_keyed_map_using (extract_str_field "format")
        elabCommand (<- `(command| def $id : Std.HashMap String String := $native_structures))
+   | "raw" =>
+        let data_str <- liftTermElabM $ do
+            let raw_data <- load_extension_api_data
+            return s!"{raw_data}"
+         let data_str := Lean.Syntax.mkStrLit data_str
+         let data_stx <- `(term| $data_str)
+         elabCommand (<- `(command| def $id : Lean.Json := ((Lean.Json.parse $data_stx).toOption.get!)))
 
    | _ => throwError "unsupported {id}"
 
@@ -309,10 +431,16 @@ def_godot_api builtin_class_sizes
 def_godot_api builtin_class_member_offsets
 def_godot_api global_enums
 def_godot_api utility_functions
--- def_godot_api builtin_classes
--- def_godot_api classes
 def_godot_api singletons
 def_godot_api native_structures
+
+def_godot_api raw
+
+def builtin_classes := extract_keyed_map_using_runtime extract_builtin_class_runtime <| raw.getObjValD "builtin_classes"
+def classes := extract_keyed_map_using_runtime extract_class_runtime  <| raw.getObjValD "classes"
+/- def_godot_api builtin_classes
+ -/-- def_godot_api classes
+
 
 end ExtensionAPI.Json.private
 
@@ -323,8 +451,8 @@ def builtin_class_sizes := ExtensionAPI.Json.private.builtin_class_sizes
 def builtin_class_member_offsets := ExtensionAPI.Json.private.builtin_class_member_offsets
 def global_enums := ExtensionAPI.Json.private.global_enums
 def utility_functions := ExtensionAPI.Json.private.utility_functions
--- def builtin_classes := ExtensionAPI.Json.private.builtin_classes
--- def classes := ExtensionAPI.Json.private.classes
+def builtin_classes := ExtensionAPI.Json.private.builtin_classes
+def classes := ExtensionAPI.Json.private.classes
 def singletons := ExtensionAPI.Json.private.singletons
 def native_structures := ExtensionAPI.Json.private.native_structures
 
