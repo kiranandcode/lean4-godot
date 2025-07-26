@@ -66,6 +66,15 @@ target initHeader (pkg : NPackage _package.name) : FilePath := do
   buildFileAfterDep outFile output fun output =>
     IO.FS.writeFile outFile output
 
+target initAfterClassHeader (pkg : NPackage _package.name) : FilePath := do
+  let cDir := pkg.buildDir / "c"
+  IO.FS.createDirAll cDir -- ensure output dir exists
+  let outFile := cDir / "init_after.h"
+  let output <- GenerateBindings pkg "InitAfterClass"
+  buildFileAfterDep outFile output fun output =>
+    IO.FS.writeFile outFile output
+
+
 target declarationsHeader (pkg : NPackage _package.name) : FilePath := do
   -- let exe ← GenerateBindings.fetch -- build and get the path to the executable
   let cDir := pkg.buildDir / "c"
@@ -111,6 +120,24 @@ target builtinTypeConversionDeclsHeader (pkg : NPackage _package.name) : FilePat
   buildFileAfterDep outFile output fun output =>
     IO.FS.writeFile outFile output
 
+target utilityFuncDeclsHeader (pkg : NPackage _package.name) : FilePath := do
+  -- let exe ← GenerateBindings.fetch -- build and get the path to the executable
+  let cDir := pkg.buildDir / "c"
+  IO.FS.createDirAll cDir -- ensure output dir exists
+  let outFile := cDir / "utility_func_decl.h"
+  let output <- GenerateBindings pkg "UtilityFuncDecls"
+  buildFileAfterDep outFile output fun output =>
+    IO.FS.writeFile outFile output
+
+target singletonDeclsHeader (pkg : NPackage _package.name) : FilePath := do
+  -- let exe ← GenerateBindings.fetch -- build and get the path to the executable
+  let cDir := pkg.buildDir / "c"
+  IO.FS.createDirAll cDir -- ensure output dir exists
+  let outFile := cDir / "singleton_decl.h"
+  let output <- GenerateBindings pkg "SingletonDecls"
+  buildFileAfterDep outFile output fun output =>
+    IO.FS.writeFile outFile output
+
 
 
 target utils.h (_pkg : NPackage _package.name) : FilePath := do
@@ -120,16 +147,22 @@ target utils.h (_pkg : NPackage _package.name) : FilePath := do
 target bindings.c (_pkg : NPackage _package.name) : FilePath := do
   let declarationsHeader <- declarationsHeader.fetch
   let initHeader <- initHeader.fetch
+  let initAfterClassHeader <- initAfterClassHeader.fetch
   let builtinTypeSizesHeader <- builtinTypeSizesHeader.fetch
   let builtinTypeDestructorDeclsHeader <- builtinTypeDestructorDeclsHeader.fetch
   let builtinTypeClassDeclsHeader <- builtinTypeClassDeclsHeader.fetch
   let builtinTypeConversionDeclsHeader <- builtinTypeConversionDeclsHeader.fetch
+  let utilityFuncDeclsHeader <- utilityFuncDeclsHeader.fetch
+  let singletonDeclsHeader <- singletonDeclsHeader.fetch
   let _ <- declarationsHeader.await
   let _ <- initHeader.await
   let _ <- builtinTypeSizesHeader.await
   let _ <- builtinTypeDestructorDeclsHeader.await
   let _ <- builtinTypeClassDeclsHeader.await
   let _ <- builtinTypeConversionDeclsHeader.await
+  let _ <- utilityFuncDeclsHeader.await
+  let _ <- singletonDeclsHeader.await
+  let _ <- initAfterClassHeader.await
   let utils <- utils.h.fetch
   let _ <- utils.await
   inputFile "c/bindings.c" true

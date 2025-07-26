@@ -4,6 +4,8 @@ import LeanGodot.Initialization
 import LeanGodot.Printing
 import LeanGodot.Variant
 import LeanGodot.String
+import LeanGodot.StringName
+import LeanGodot.Utility
 import Bindings
 
 namespace Godot
@@ -29,6 +31,18 @@ def on_initialization (lvl: Initialization.Level) : IO Unit := do
   gd_eprint! "converting variant to string..."
   let var_str <- pure (var.toString)
   gd_eprint! "converted back to a string {var_str}!"
+  gd_eprint! "creating a stringname"
+  let sstr <- pure (Godot.StringName.mk "epic")
+  gd_eprint! "made a stringname!"
+  gd_eprint! "tostring of stringname"
+  let sstr_str <- pure (sstr.toString)
+  gd_eprint! "got stringname: {sstr_str}"
+  if let Initialization.Level.EDITOR := lvl then
+     Godot.Utility.print #[var]
+     Godot.Utility.push_warning #[g_str.toVariant]
+  let i := Godot.Utility.randi ()
+  gd_eprint! "random value {i}"
+
   /- gd_eprint! "printing!!! {var_str}"
  -/
 

@@ -34,7 +34,23 @@
   } \
   } while(0)
 
+struct GDStringName _static_utility_load_fn;
 
+#define LEAN4_LOAD_UTILITY_FN(NAME, CSTR, HASH) \
+     do { \
+       string_name_new_with_latin1_chars(&_static_utility_load_fn, CSTR, true); \
+       NAME = variant_get_ptr_utility_function(&_static_utility_load_fn, HASH); \
+     } while (0)
+
+struct GDStringName _static_singleton_load_name;
+
+#define LEAN4_LOAD_SINGLETON(NAME, CSTR) \
+     do { \
+       string_name_new_with_latin1_chars(&_static_singleton_load_name, CSTR, true); \
+       NAME = global_get_singleton(&_static_singleton_load_name); \
+     } while (0)
+
+     
 #define REGISTER_LEAN_CLASS(NAME, FINALISER, FOREACH) \
   static lean_external_class * g_ ## NAME ## _class; \
   static lean_external_class * get_ ## NAME ## _class() { \
@@ -53,13 +69,33 @@ GDExtensionInterfaceVariantNewCopy variant_new_copy = NULL;
 GDExtensionInterfaceVariantGetPtrDestructor variant_get_ptr_destructor = NULL;
 GDExtensionInterfaceVariantGetType variant_get_type = NULL;
 GDExtensionInterfaceVariantDuplicate variant_duplicate = NULL;
+
+GDExtensionInterfaceVariantGetPtrUtilityFunction variant_get_ptr_utility_function = NULL;
+GDExtensionInterfaceGlobalGetSingleton global_get_singleton = NULL;
+
+
 GDExtensionInterfaceGetVariantFromTypeConstructor get_variant_from_type_constructor = NULL;
 GDExtensionInterfaceGetVariantToTypeConstructor get_variant_to_type_constructor = NULL;
+GDExtensionInterfaceStringNameNewWithLatin1Chars string_name_new_with_latin1_chars = NULL;
 /* ** Destructors */
 #include "builtin_type_destructor_decl.h"
 
 /* ** Conversions */
 #include "builtin_type_conversion_decl.h"
+
+
+
+/* lean_obj *lean4_util_sin(double angle_rad) {
+  LEAN4_CHECK_FP_INIT_PURE(util_sin);
+  float angle_rad_arg = (float)angle_rad;
+  float ret_ty;
+  void args[] = [&angle_rad_arg];
+  util_sin(&ret_ty, args, 1);
+  return lean_box(ret_ty);
+}
+ */
+/* ** Singletons */
+#include "singleton_decl.h"
 
 /* ** Utilities */
 inline static void noop_foreach(void *mod, b_lean_obj_arg fn) {}
@@ -70,12 +106,21 @@ inline static void lean_godot_variant_finalizer(void *obj) {
   if(variant_destroy != NULL) { variant_destroy(variant); }
   if(mem_free != NULL) { mem_free(obj); }
 }
-REGISTER_LEAN_CLASS(lean_godot_variant, lean_godot_variant_finalizer, noop_foreach)
+REGISTER_LEAN_CLASS(lean_godot_Variant, lean_godot_variant_finalizer, noop_foreach)
+
+inline static void lean_godot_Object_finalizer(void *obj) {
+
+}
+REGISTER_LEAN_CLASS(lean_godot_Object, lean_godot_Object_finalizer, noop_foreach)
+
 
 /* ** Class Declarations */
 #include "builtin_type_class_decl.h"
 
 #include "declarations.h"
+
+/* ** Utility Functions */
+#include "utility_func_decl.h"
 
 /* ** Runtime setup */
 extern void lean_initialize_runtime_module();
@@ -134,6 +179,23 @@ lean_object *lean4_string_new_with_utf_chars(lean_object *string) {
   return res;
 }
 
+GDExtensionInterfaceStringNameNewWithUtf8CharsAndLen string_name_new_with_utf8_chars_and_len = NULL;
+lean_object *lean4_string_name_new_with_utf_chars(lean_object *string) {
+  LEAN4_CHECK_FP_INIT_PURE(string_name_new_with_utf8_chars_and_len);
+  LEAN4_CHECK_FP_INIT_PURE(mem_alloc);
+  LEAN4_CHECK_FP_INIT_PURE(mem_free);
+  char const *cstr = lean_string_cstr(string);
+  size_t len = lean_string_len(string);
+  // we're allocing here, but mem_free will be called in the finaliser for the lean_godot_class
+  struct GDStringName *gd_string = (struct GDStringName *)mem_alloc(sizeof(*gd_string));
+  // create a godot string object, the destructor will be called byt he string_class finalizer
+  string_name_new_with_utf8_chars_and_len(gd_string, cstr, len);
+  // wrap it in a lean_object, and send it off chief
+  lean_object *res = lean_alloc_external(get_lean_godot_StringName_class(), (void *) gd_string);
+  return res;
+}
+
+
 lean_object *lean4_string_to_variant(lean_object *obj) {
    LEAN4_CHECK_FP_INIT_PURE(gd_string_to_variant);
    LEAN4_CHECK_FP_INIT_PURE(variant_new_copy);
@@ -146,7 +208,25 @@ lean_object *lean4_string_to_variant(lean_object *obj) {
    struct GDVariant *res = (struct GDVariant *)mem_alloc(sizeof(*res));
    variant_new_copy(res, &tmpRes);
 
-   lean_object *resObj = lean_alloc_external(get_lean_godot_variant_class(), (void *) res);
+   lean_object *resObj = lean_alloc_external(get_lean_godot_Variant_class(), (void *) res);
+  
+   return resObj;
+}
+
+
+lean_object *lean4_string_name_to_variant(lean_object *obj) {
+   LEAN4_CHECK_FP_INIT_PURE(gd_stringname_to_variant);
+   LEAN4_CHECK_FP_INIT_PURE(variant_new_copy);
+   LEAN4_CHECK_FP_INIT_PURE(mem_alloc);
+   
+   // doing a little jig here to avoid double frees
+   struct GDStringName *gdString = lean_get_external_data(obj);
+   struct GDVariant tmpRes;
+   gd_stringname_to_variant(&tmpRes, gdString);
+   struct GDVariant *res = (struct GDVariant *)mem_alloc(sizeof(*res));
+   variant_new_copy(res, &tmpRes);
+
+   lean_object *resObj = lean_alloc_external(get_lean_godot_Variant_class(), (void *) res);
   
    return resObj;
 }
@@ -154,7 +234,6 @@ lean_object *lean4_string_to_variant(lean_object *obj) {
 GDExtensionInterfaceStringNewWithUtf8Chars string_new_with_utf8_chars = NULL;
 GDExtensionInterfaceVariantStringify variant_stringify = NULL;
 lean_object *lean4_variant_stringify(lean_object *variant) {
-  fprintf(stderr,"variant_stringify called!\n");
   LEAN4_CHECK_FP_INIT_PURE(variant_stringify);
   LEAN4_CHECK_FP_INIT_PURE(string_new_with_utf8_chars);
   LEAN4_CHECK_FP_INIT_PURE(mem_alloc);
@@ -175,6 +254,7 @@ lean_object *lean4_variant_stringify(lean_object *variant) {
   lean_object *res = lean_mk_string_from_bytes(buf, len);
   return res;  
 }
+
 
 void _link_my_bindings_clang_pls() {
   initialize_Bindings(1, lean_io_mk_world());
@@ -206,6 +286,9 @@ int _initialise_lean_state() {
 
 
 void lean4_godot_initialize_callback(void *userdata, GDExtensionInitializationLevel p_level) {
+  if(p_level == GDEXTENSION_INITIALIZATION_EDITOR) {
+    #include "init_after.h"
+  }
   /* printf("[lean4-godot] initialisation level %d\n", p_level); */
   lean_object *res;
   LEAN4_CALL_IO(res,lean_godot_on_initialization(p_level));
@@ -230,8 +313,12 @@ GDExtensionBool lean_godot_gdnative_init(
   string_to_utf8_chars = (GDExtensionInterfaceStringToUtf8Chars)p_get_proc_address("string_to_utf8_chars");
   string_new_with_utf8_chars_and_len = (GDExtensionInterfaceStringNewWithUtf8CharsAndLen)p_get_proc_address("string_new_with_utf8_chars_and_len");
   string_new_with_utf8_chars = (GDExtensionInterfaceStringNameNewWithUtf8Chars)p_get_proc_address("string_new_with_utf8_chars");
+  string_name_new_with_utf8_chars_and_len = (GDExtensionInterfaceStringNameNewWithUtf8CharsAndLen)p_get_proc_address("string_name_new_with_utf8_chars_and_len");
+  string_name_new_with_latin1_chars = (GDExtensionInterfaceStringNameNewWithLatin1Chars)p_get_proc_address("string_name_new_with_latin1_chars");
+  
   mem_alloc = (GDExtensionInterfaceMemAlloc)p_get_proc_address("mem_alloc");
   mem_free = (GDExtensionInterfaceMemFree)p_get_proc_address("mem_free");
+
   variant_get_type = (GDExtensionInterfaceVariantGetType)p_get_proc_address("variant_get_type");
   variant_get_ptr_destructor = (GDExtensionInterfaceVariantGetPtrDestructor)p_get_proc_address("variant_get_ptr_destructor");
   variant_stringify = (GDExtensionInterfaceVariantStringify)p_get_proc_address("variant_stringify");
@@ -241,6 +328,10 @@ GDExtensionBool lean_godot_gdnative_init(
   get_variant_from_type_constructor = (GDExtensionInterfaceGetVariantFromTypeConstructor)p_get_proc_address("get_variant_from_type_constructor");
   get_variant_to_type_constructor = (GDExtensionInterfaceGetVariantToTypeConstructor)p_get_proc_address("get_variant_to_type_constructor");
 
+  variant_get_ptr_utility_function = (GDExtensionInterfaceVariantGetPtrUtilityFunction)p_get_proc_address("variant_get_ptr_utility_function");
+  global_get_singleton = (GDExtensionInterfaceGlobalGetSingleton)p_get_proc_address("global_get_singleton");
+
+  
 
   #include "init.h"
 
