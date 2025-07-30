@@ -1,4 +1,4 @@
-/* VARIANT TYPES */
+/* * VARIANT TYPES */
 
 typedef enum {
 	GDEXTENSION_VARIANT_TYPE_NIL,
@@ -106,7 +106,7 @@ typedef struct {
 	int32_t expected;
 } GDExtensionCallError;
 
-/* INTERFACE */
+/* * INTERFACE */
 
 typedef struct {
 	uint32_t major;
@@ -116,11 +116,7 @@ typedef struct {
 } GDExtensionGodotVersion;
 
 
-/* INTERFACE: Memory */
-
-
-
-
+/* ** INTERFACE: Memory */
 /**
  * @name get_native_struct_size
  * @since 4.1
@@ -133,18 +129,8 @@ typedef struct {
  */
 typedef uint64_t (*GDExtensionInterfaceGetNativeStructSize)(GDExtensionConstStringNamePtr p_name);
 
-/* INTERFACE: Variant */
-
-/**
- * @name variant_new_copy
- * @since 4.1
- *
- * Copies one Variant into a another.
- *
- * @param r_dest A pointer to the destination Variant.
- * @param p_src A pointer to the source Variant.
- */
-typedef void (*GDExtensionInterfaceVariantNewCopy)(GDExtensionUninitializedVariantPtr r_dest, GDExtensionConstVariantPtr p_src);
+/* ** INTERFACE: Variant */
+/* *** mkNil */
 
 /**
  * @name variant_new_nil
@@ -156,7 +142,7 @@ typedef void (*GDExtensionInterfaceVariantNewCopy)(GDExtensionUninitializedVaria
  */
 typedef void (*GDExtensionInterfaceVariantNewNil)(GDExtensionUninitializedVariantPtr r_dest);
 
-
+/* *** Generic Method calls */
 /**
  * @name variant_call
  * @since 4.1
@@ -191,6 +177,8 @@ typedef void (*GDExtensionInterfaceVariantCall)(GDExtensionVariantPtr p_self, GD
  */
 typedef void (*GDExtensionInterfaceVariantCallStatic)(GDExtensionVariantType p_type, GDExtensionConstStringNamePtr p_method, const GDExtensionConstVariantPtr *p_args, GDExtensionInt p_argument_count, GDExtensionUninitializedVariantPtr r_return, GDExtensionCallError *r_error);
 
+/* *** Generic Operator */
+
 /**
  * @name variant_evaluate
  * @since 4.1
@@ -206,6 +194,8 @@ typedef void (*GDExtensionInterfaceVariantCallStatic)(GDExtensionVariantType p_t
  * @see Variant::evaluate()
  */
 typedef void (*GDExtensionInterfaceVariantEvaluate)(GDExtensionVariantOperator p_op, GDExtensionConstVariantPtr p_a, GDExtensionConstVariantPtr p_b, GDExtensionUninitializedVariantPtr r_return, GDExtensionBool *r_valid);
+
+/* *** Generic Derereferencing */
 
 /**
  * @name variant_set
@@ -319,6 +309,8 @@ typedef void (*GDExtensionInterfaceVariantGetKeyed)(GDExtensionConstVariantPtr p
  */
 typedef void (*GDExtensionInterfaceVariantGetIndexed)(GDExtensionConstVariantPtr p_self, GDExtensionInt p_index, GDExtensionUninitializedVariantPtr r_ret, GDExtensionBool *r_valid, GDExtensionBool *r_oob);
 
+/* *** Iter  */
+
 /**
  * @name variant_iter_init
  * @since 4.1
@@ -366,6 +358,8 @@ typedef GDExtensionBool (*GDExtensionInterfaceVariantIterNext)(GDExtensionConstV
  */
 typedef void (*GDExtensionInterfaceVariantIterGet)(GDExtensionConstVariantPtr p_self, GDExtensionVariantPtr r_iter, GDExtensionUninitializedVariantPtr r_ret, GDExtensionBool *r_valid);
 
+/* *** Hash  */
+
 /**
  * @name variant_hash
  * @since 4.1
@@ -395,6 +389,7 @@ typedef GDExtensionInt (*GDExtensionInterfaceVariantHash)(GDExtensionConstVarian
  */
 typedef GDExtensionInt (*GDExtensionInterfaceVariantRecursiveHash)(GDExtensionConstVariantPtr p_self, GDExtensionInt p_recursion_count);
 
+
 /**
  * @name variant_hash_compare
  * @since 4.1
@@ -410,6 +405,7 @@ typedef GDExtensionInt (*GDExtensionInterfaceVariantRecursiveHash)(GDExtensionCo
  */
 typedef GDExtensionBool (*GDExtensionInterfaceVariantHashCompare)(GDExtensionConstVariantPtr p_self, GDExtensionConstVariantPtr p_other);
 
+/* *** To Bool  */
 /**
  * @name variant_booleanize
  * @since 4.1
@@ -422,28 +418,7 @@ typedef GDExtensionBool (*GDExtensionInterfaceVariantHashCompare)(GDExtensionCon
  */
 typedef GDExtensionBool (*GDExtensionInterfaceVariantBooleanize)(GDExtensionConstVariantPtr p_self);
 
-/**
- * @name variant_duplicate
- * @since 4.1
- *
- * Duplicates a Variant.
- *
- * @param p_self A pointer to the Variant.
- * @param r_ret A pointer to a Variant to store the duplicated value.
- * @param p_deep Whether or not to duplicate deeply (when supported by the Variant type).
- */
-typedef void (*GDExtensionInterfaceVariantDuplicate)(GDExtensionConstVariantPtr p_self, GDExtensionVariantPtr r_ret, GDExtensionBool p_deep);
-
-/**
- * @name variant_stringify
- * @since 4.1
- *
- * Converts a Variant to a string.
- *
- * @param p_self A pointer to the Variant.
- * @param r_ret A pointer to a String to store the resulting value.
- */
-typedef void (*GDExtensionInterfaceVariantStringify)(GDExtensionConstVariantPtr p_self, GDExtensionStringPtr r_ret);
+/* *** Check Keys  */
 
 /**
  * @name variant_get_type
@@ -497,6 +472,7 @@ typedef GDExtensionBool (*GDExtensionInterfaceVariantHasMember)(GDExtensionVaria
  */
 typedef GDExtensionBool (*GDExtensionInterfaceVariantHasKey)(GDExtensionConstVariantPtr p_self, GDExtensionConstVariantPtr p_key, GDExtensionBool *r_valid);
 
+/* *** Get Type */
 /**
  * @name variant_get_type_name
  * @since 4.1
@@ -508,6 +484,7 @@ typedef GDExtensionBool (*GDExtensionInterfaceVariantHasKey)(GDExtensionConstVar
  */
 typedef void (*GDExtensionInterfaceVariantGetTypeName)(GDExtensionVariantType p_type, GDExtensionUninitializedStringPtr r_name);
 
+/* *** Conversion */
 /**
  * @name variant_can_convert
  * @since 4.1
@@ -534,29 +511,7 @@ typedef GDExtensionBool (*GDExtensionInterfaceVariantCanConvert)(GDExtensionVari
  */
 typedef GDExtensionBool (*GDExtensionInterfaceVariantCanConvertStrict)(GDExtensionVariantType p_from, GDExtensionVariantType p_to);
 
-/**
- * @name get_variant_from_type_constructor
- * @since 4.1
- *
- * Gets a pointer to a function that can create a Variant of the given type from a raw value.
- *
- * @param p_type The Variant type.
- *
- * @return A pointer to a function that can create a Variant of the given type from a raw value.
- */
-typedef GDExtensionVariantFromTypeConstructorFunc (*GDExtensionInterfaceGetVariantFromTypeConstructor)(GDExtensionVariantType p_type);
-
-/**
- * @name get_variant_to_type_constructor
- * @since 4.1
- *
- * Gets a pointer to a function that can get the raw value from a Variant of the given type.
- *
- * @param p_type The Variant type.
- *
- * @return A pointer to a function that can get the raw value from a Variant of the given type.
- */
-typedef GDExtensionTypeFromVariantConstructorFunc (*GDExtensionInterfaceGetVariantToTypeConstructor)(GDExtensionVariantType p_type);
+/* *** Operators */
 
 /**
  * @name variant_get_ptr_operator_evaluator
@@ -572,85 +527,9 @@ typedef GDExtensionTypeFromVariantConstructorFunc (*GDExtensionInterfaceGetVaria
  */
 typedef GDExtensionPtrOperatorEvaluator (*GDExtensionInterfaceVariantGetPtrOperatorEvaluator)(GDExtensionVariantOperator p_operator, GDExtensionVariantType p_type_a, GDExtensionVariantType p_type_b);
 
-/**
- * @name variant_get_ptr_builtin_method
- * @since 4.1
- *
- * Gets a pointer to a function that can call a builtin method on a type of Variant.
- *
- * @param p_type The Variant type.
- * @param p_method A pointer to a StringName with the method name.
- * @param p_hash A hash representing the method signature.
- *
- * @return A pointer to a function that can call a builtin method on a type of Variant.
- */
-typedef GDExtensionPtrBuiltInMethod (*GDExtensionInterfaceVariantGetPtrBuiltinMethod)(GDExtensionVariantType p_type, GDExtensionConstStringNamePtr p_method, GDExtensionInt p_hash);
 
-/**
- * @name variant_get_ptr_constructor
- * @since 4.1
- *
- * Gets a pointer to a function that can call one of the constructors for a type of Variant.
- *
- * @param p_type The Variant type.
- * @param p_constructor The index of the constructor.
- *
- * @return A pointer to a function that can call one of the constructors for a type of Variant.
- */
-typedef GDExtensionPtrConstructor (*GDExtensionInterfaceVariantGetPtrConstructor)(GDExtensionVariantType p_type, int32_t p_constructor);
-
-/**
- * @name variant_get_ptr_destructor
- * @since 4.1
- *
- * Gets a pointer to a function than can call the destructor for a type of Variant.
- *
- * @param p_type The Variant type.
- *
- * @return A pointer to a function than can call the destructor for a type of Variant.
- */
-typedef GDExtensionPtrDestructor (*GDExtensionInterfaceVariantGetPtrDestructor)(GDExtensionVariantType p_type);
-
-/**
- * @name variant_construct
- * @since 4.1
- *
- * Constructs a Variant of the given type, using the first constructor that matches the given arguments.
- *
- * @param p_type The Variant type.
- * @param p_base A pointer to a Variant to store the constructed value.
- * @param p_args A pointer to a C array of Variant pointers representing the arguments for the constructor.
- * @param p_argument_count The number of arguments to pass to the constructor.
- * @param r_error A pointer the structure which will be updated with error information.
- */
-typedef void (*GDExtensionInterfaceVariantConstruct)(GDExtensionVariantType p_type, GDExtensionUninitializedVariantPtr r_base, const GDExtensionConstVariantPtr *p_args, int32_t p_argument_count, GDExtensionCallError *r_error);
-
-/**
- * @name variant_get_ptr_setter
- * @since 4.1
- *
- * Gets a pointer to a function that can call a member's setter on the given Variant type.
- *
- * @param p_type The Variant type.
- * @param p_member A pointer to a StringName with the member name.
- *
- * @return A pointer to a function that can call a member's setter on the given Variant type.
- */
-typedef GDExtensionPtrSetter (*GDExtensionInterfaceVariantGetPtrSetter)(GDExtensionVariantType p_type, GDExtensionConstStringNamePtr p_member);
-
-/**
- * @name variant_get_ptr_getter
- * @since 4.1
- *
- * Gets a pointer to a function that can call a member's getter on the given Variant type.
- *
- * @param p_type The Variant type.
- * @param p_member A pointer to a StringName with the member name.
- *
- * @return A pointer to a function that can call a member's getter on the given Variant type.
- */
-typedef GDExtensionPtrGetter (*GDExtensionInterfaceVariantGetPtrGetter)(GDExtensionVariantType p_type, GDExtensionConstStringNamePtr p_member);
-
+/* *** Efficient Derereferencing */
+/* **** Indexed */
 /**
  * @name variant_get_ptr_indexed_setter
  * @since 4.1
@@ -675,6 +554,7 @@ typedef GDExtensionPtrIndexedSetter (*GDExtensionInterfaceVariantGetPtrIndexedSe
  */
 typedef GDExtensionPtrIndexedGetter (*GDExtensionInterfaceVariantGetPtrIndexedGetter)(GDExtensionVariantType p_type);
 
+/* **** Keyed */
 /**
  * @name variant_get_ptr_keyed_setter
  * @since 4.1
@@ -711,24 +591,9 @@ typedef GDExtensionPtrKeyedGetter (*GDExtensionInterfaceVariantGetPtrKeyedGetter
  */
 typedef GDExtensionPtrKeyedChecker (*GDExtensionInterfaceVariantGetPtrKeyedChecker)(GDExtensionVariantType p_type);
 
-/**
- * @name variant_get_constant_value
- * @since 4.1
- *
- * Gets the value of a constant from the given Variant type.
- *
- * @param p_type The Variant type.
- * @param p_constant A pointer to a StringName with the constant name.
- * @param r_ret A pointer to a Variant to store the value.
- */
-typedef void (*GDExtensionInterfaceVariantGetConstantValue)(GDExtensionVariantType p_type, GDExtensionConstStringNamePtr p_constant, GDExtensionUninitializedVariantPtr r_ret);
 
 
-/* INTERFACE: String Utilities */
-
-/* INTERFACE: StringName Utilities */
-
-/* INTERFACE: XMLParser Utilities */
+/* ** INTERFACE: XMLParser Utilities */
 
 /**
  * @name xml_parser_open_buffer
@@ -746,7 +611,7 @@ typedef void (*GDExtensionInterfaceVariantGetConstantValue)(GDExtensionVariantTy
  */
 typedef GDExtensionInt (*GDExtensionInterfaceXmlParserOpenBuffer)(GDExtensionObjectPtr p_instance, const uint8_t *p_buffer, size_t p_size);
 
-/* INTERFACE: FileAccess Utilities */
+/* ** INTERFACE: FileAccess Utilities */
 
 /**
  * @name file_access_store_buffer
@@ -776,7 +641,7 @@ typedef void (*GDExtensionInterfaceFileAccessStoreBuffer)(GDExtensionObjectPtr p
  */
 typedef uint64_t (*GDExtensionInterfaceFileAccessGetBuffer)(GDExtensionConstObjectPtr p_instance, uint8_t *p_dst, uint64_t p_length);
 
-/* INTERFACE: WorkerThreadPool Utilities */
+/* ** INTERFACE: WorkerThreadPool Utilities */
 
 /**
  * @name worker_thread_pool_add_native_group_task
@@ -813,7 +678,7 @@ typedef int64_t (*GDExtensionInterfaceWorkerThreadPoolAddNativeGroupTask)(GDExte
  */
 typedef int64_t (*GDExtensionInterfaceWorkerThreadPoolAddNativeTask)(GDExtensionObjectPtr p_instance, void (*p_func)(void *), void *p_userdata, GDExtensionBool p_high_priority, GDExtensionConstStringPtr p_description);
 
-/* INTERFACE: Packed Array */
+/* ** INTERFACE: Packed Array */
 
 /**
  * @name packed_byte_array_operator_index
@@ -1099,7 +964,7 @@ typedef void (*GDExtensionInterfaceArrayRef)(GDExtensionTypePtr p_self, GDExtens
  */
 typedef void (*GDExtensionInterfaceArraySetTyped)(GDExtensionTypePtr p_self, GDExtensionVariantType p_type, GDExtensionConstStringNamePtr p_class_name, GDExtensionConstVariantPtr p_script);
 
-/* INTERFACE: Dictionary */
+/* ** INTERFACE: Dictionary */
 
 /**
  * @name dictionary_operator_index
@@ -1127,7 +992,7 @@ typedef GDExtensionVariantPtr (*GDExtensionInterfaceDictionaryOperatorIndex)(GDE
  */
 typedef GDExtensionVariantPtr (*GDExtensionInterfaceDictionaryOperatorIndexConst)(GDExtensionConstTypePtr p_self, GDExtensionConstVariantPtr p_key);
 
-/* INTERFACE: Object */
+/* ** INTERFACE: Object */
 
 /**
  * @name object_method_bind_call
@@ -1268,7 +1133,7 @@ typedef GDExtensionObjectPtr (*GDExtensionInterfaceObjectGetInstanceFromId)(GDOb
  */
 typedef GDObjectInstanceID (*GDExtensionInterfaceObjectGetInstanceId)(GDExtensionConstObjectPtr p_object);
 
-/* INTERFACE: Reference */
+/* ** INTERFACE: Reference */
 
 /**
  * @name ref_get_object
@@ -1293,7 +1158,7 @@ typedef GDExtensionObjectPtr (*GDExtensionInterfaceRefGetObject)(GDExtensionCons
  */
 typedef void (*GDExtensionInterfaceRefSetObject)(GDExtensionRefPtr p_ref, GDExtensionObjectPtr p_object);
 
-/* INTERFACE: Script Instance */
+/* ** INTERFACE: Script Instance */
 
 /**
  * @name script_instance_create
@@ -1366,7 +1231,7 @@ typedef void (*GDExtensionInterfacePlaceHolderScriptInstanceUpdate)(GDExtensionS
  */
 typedef GDExtensionScriptInstanceDataPtr (*GDExtensionInterfaceObjectGetScriptInstance)(GDExtensionConstObjectPtr p_object, GDExtensionObjectPtr p_language);
 
-/* INTERFACE: Callable */
+/* ** INTERFACE: Callable */
 
 /**
  * @name callable_custom_create
@@ -1394,7 +1259,7 @@ typedef void (*GDExtensionInterfaceCallableCustomCreate)(GDExtensionUninitialize
  */
 typedef void *(*GDExtensionInterfaceCallableCustomGetUserData)(GDExtensionConstTypePtr p_callable, void *p_token);
 
-/* INTERFACE: ClassDB */
+/* ** INTERFACE: ClassDB */
 
 /**
  * @name classdb_construct_object
@@ -1583,6 +1448,8 @@ typedef void (*GDExtensionInterfaceClassdbRegisterExtensionClassSignal)(GDExtens
  * @param p_class_name A pointer to a StringName with the class name.
  */
 typedef void (*GDExtensionInterfaceClassdbUnregisterExtensionClass)(GDExtensionClassLibraryPtr p_library, GDExtensionConstStringNamePtr p_class_name); /* Unregistering a parent class before a class that inherits it will result in failure. Inheritors must be unregistered first. */
+
+/* * Library Path  */
 
 /**
  * @name get_library_path

@@ -120,12 +120,67 @@ target builtinTypeConversionDeclsHeader (pkg : NPackage _package.name) : FilePat
   buildFileAfterDep outFile output fun output =>
     IO.FS.writeFile outFile output
 
+target builtinTypeConversionBindingsHeader (pkg : NPackage _package.name) : FilePath := do
+  -- let exe ← GenerateBindings.fetch -- build and get the path to the executable
+  let cDir := pkg.buildDir / "c"
+  IO.FS.createDirAll cDir -- ensure output dir exists
+  let outFile := cDir / "builtin_type_conversion_bindings.h"
+  let output <- GenerateBindings pkg "BuiltinTypeClassBindings"
+  buildFileAfterDep outFile output fun output =>
+    IO.FS.writeFile outFile output
+
+target builtinTypeConstantBindingHeader (pkg : NPackage _package.name) : FilePath := do
+  -- let exe ← GenerateBindings.fetch -- build and get the path to the executable
+  let cDir := pkg.buildDir / "c"
+  IO.FS.createDirAll cDir -- ensure output dir exists
+  let outFile := cDir / "builtin_type_constant_bindings.h"
+  let output <- GenerateBindings pkg "BuiltinTypeConstantBindings"
+  buildFileAfterDep outFile output fun output =>
+    IO.FS.writeFile outFile output
+
+target builtinTypeMemberFunHeader (pkg : NPackage _package.name) : FilePath := do
+  -- let exe ← GenerateBindings.fetch -- build and get the path to the executable
+  let cDir := pkg.buildDir / "c"
+  IO.FS.createDirAll cDir -- ensure output dir exists
+  let outFile := cDir / "builtin_type_member_funs.h"
+  let output <- GenerateBindings pkg "BuiltinTypeMemberFuns"
+  buildFileAfterDep outFile output fun output =>
+    IO.FS.writeFile outFile output
+
+
+target builtinTypeEnumHelpersHeader (pkg : NPackage _package.name) : FilePath := do
+  -- let exe ← GenerateBindings.fetch -- build and get the path to the executable
+  let cDir := pkg.buildDir / "c"
+  IO.FS.createDirAll cDir -- ensure output dir exists
+  let outFile := cDir / "builtin_type_enum_helpers.h"
+  let output <- GenerateBindings pkg "BuiltinTypeEnumHelpers"
+  buildFileAfterDep outFile output fun output =>
+    IO.FS.writeFile outFile output
+
+target builtinTypeConstructorHeader (pkg : NPackage _package.name) : FilePath := do
+  -- let exe ← GenerateBindings.fetch -- build and get the path to the executable
+  let cDir := pkg.buildDir / "c"
+  IO.FS.createDirAll cDir -- ensure output dir exists
+  let outFile := cDir / "builtin_type_constructors.h"
+  let output <- GenerateBindings pkg "BuiltinTypeConstructorFuns"
+  buildFileAfterDep outFile output fun output =>
+    IO.FS.writeFile outFile output
+
 target utilityFuncDeclsHeader (pkg : NPackage _package.name) : FilePath := do
   -- let exe ← GenerateBindings.fetch -- build and get the path to the executable
   let cDir := pkg.buildDir / "c"
   IO.FS.createDirAll cDir -- ensure output dir exists
   let outFile := cDir / "utility_func_decl.h"
   let output <- GenerateBindings pkg "UtilityFuncDecls"
+  buildFileAfterDep outFile output fun output =>
+    IO.FS.writeFile outFile output
+
+target builtinTypeMethodHeader (pkg : NPackage _package.name) : FilePath := do
+  -- let exe ← GenerateBindings.fetch -- build and get the path to the executable
+  let cDir := pkg.buildDir / "c"
+  IO.FS.createDirAll cDir -- ensure output dir exists
+  let outFile := cDir / "builtin_type_methods.h"
+  let output <- GenerateBindings pkg "BuiltinTypeMethodFuns"
   buildFileAfterDep outFile output fun output =>
     IO.FS.writeFile outFile output
 
@@ -145,26 +200,26 @@ target utils.h (_pkg : NPackage _package.name) : FilePath := do
 
 
 target bindings.c (_pkg : NPackage _package.name) : FilePath := do
-  let declarationsHeader <- declarationsHeader.fetch
-  let initHeader <- initHeader.fetch
-  let initAfterClassHeader <- initAfterClassHeader.fetch
-  let builtinTypeSizesHeader <- builtinTypeSizesHeader.fetch
-  let builtinTypeDestructorDeclsHeader <- builtinTypeDestructorDeclsHeader.fetch
-  let builtinTypeClassDeclsHeader <- builtinTypeClassDeclsHeader.fetch
-  let builtinTypeConversionDeclsHeader <- builtinTypeConversionDeclsHeader.fetch
-  let utilityFuncDeclsHeader <- utilityFuncDeclsHeader.fetch
-  let singletonDeclsHeader <- singletonDeclsHeader.fetch
-  let _ <- declarationsHeader.await
-  let _ <- initHeader.await
-  let _ <- builtinTypeSizesHeader.await
-  let _ <- builtinTypeDestructorDeclsHeader.await
-  let _ <- builtinTypeClassDeclsHeader.await
-  let _ <- builtinTypeConversionDeclsHeader.await
-  let _ <- utilityFuncDeclsHeader.await
-  let _ <- singletonDeclsHeader.await
-  let _ <- initAfterClassHeader.await
-  let utils <- utils.h.fetch
-  let _ <- utils.await
+  let generated_c_files : List TargetDecl := [
+     declarationsHeader,
+     initHeader,
+     initAfterClassHeader,
+     builtinTypeSizesHeader,
+     builtinTypeDestructorDeclsHeader,
+     builtinTypeClassDeclsHeader,
+     builtinTypeConversionDeclsHeader,
+     utilityFuncDeclsHeader,
+     singletonDeclsHeader,
+     builtinTypeConversionBindingsHeader,
+     builtinTypeConstantBindingHeader,
+     builtinTypeMemberFunHeader,
+     builtinTypeEnumHelpersHeader,
+     builtinTypeConstructorHeader,
+     builtinTypeMethodHeader,
+     utils.h
+  ]
+  let tasks <- generated_c_files.mapM (·.fetchJob)
+  discard <| tasks.mapM (·.await)
   inputFile "c/bindings.c" true
 
 

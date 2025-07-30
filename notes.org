@@ -147,6 +147,51 @@
 *** classdb_register_extension_class_property: LibraryToken -> &StringName -> &ExtensionPropertyInfo -> &StringName -> &StringName
 
 
-
 * TODO Generate types for builtin class sizes
 * TODO Generate class member offsets?
+* TODO Look into memory allocation specifically for conversions string name to variant...
+- We retrieve a stringname, we convert it to a variant. does this copy the stringname? is it a problem if I call string_name_destroy?
+- Function name is gd_stringname_to_variant
+
+https://github.com/godotengine/godot/blob/2d113cc224cb9be07866d003819fcef2226a52ea/core/variant/variant_internal.h#L1440
+
+Variant_to_constructor:
+#+begin_src c++
+	_FORCE_INLINE_ static void variant_from_type(void *r_variant, void *p_value) {
+		// r_variant is provided by caller as uninitialized memory
+		memnew_placement(r_variant, Variant(*((T *)p_value)));
+	}
+#+end_src
+(Crucially, =*(T *)= dereferences the value of the pointer as input, so this allocates memory for the underlying data)
+same for Type_from_variant:
+
+#+begin_src c++
+	_FORCE_INLINE_ static void type_from_variant(void *r_value, void *p_variant) {
+		// r_value is provided by caller as uninitialized memory
+		memnew_placement(r_value, T(*reinterpret_cast<Variant *>(p_variant)));
+	}
+#+end_src
+
+conclusion we do not need to worry about memory allocation at all!!
+* DONE [LEAN] Generate opaque types for each builtin class
+CLOSED: [2025-07-29 Tue 14:28]
+* DONE [LEAN] skip variant
+CLOSED: [2025-07-29 Tue 15:02]
+* DONE [LEAN] Generate conversions from Godot.Variant to the builtinclass types
+CLOSED: [2025-07-29 Tue 14:28]
+* DONE [C] generate conversion implementation (lean4_{name}_to_variant)
+CLOSED: [2025-07-29 Tue 15:02]
+* DONE Generate Lean and C bindings for Variant constants
+CLOSED: [2025-07-29 Tue 18:55]
+* DONE Generate Lean and C bindings for Variant properties
+CLOSED: [2025-07-29 Tue 23:29]
+* DONE Modify variant constants to be IO
+CLOSED: [2025-07-30 Wed 09:45]
+* DONE Generate Lean and C helpers for Variant enums
+CLOSED: [2025-07-30 Wed 10:33]
+* DONE Generate Lean and C bindings for variant constructors
+CLOSED: [2025-07-30 Wed 11:43]
+* DONE Generate Lean and C bindings for Variant methods
+CLOSED: [2025-07-30 Wed 17:06]
+* TODO Generate Lean and C bindings for variant operators
+* TODO Implement a generic variant encoding and a conversion function from variant to the underlying type

@@ -50,6 +50,30 @@ struct GDStringName _static_singleton_load_name;
        NAME = global_get_singleton(&_static_singleton_load_name); \
      } while (0)
 
+struct GDStringName _static_name_for_getter_setter;
+
+#define LEAN4_LOAD_GETTER(NAME, ITY, TY, CSTR) \
+     do { \
+       string_name_new_with_latin1_chars(&_static_name_for_getter_setter, CSTR, true); \
+       NAME = (ITY)variant_get_ptr_getter(TY, &_static_name_for_getter_setter); \
+     } while (0)
+
+#define LEAN4_LOAD_SETTER(NAME, ITY, TY, CSTR) \
+     do { \
+       string_name_new_with_latin1_chars(&_static_name_for_getter_setter, CSTR, true); \
+       NAME = (ITY)variant_get_ptr_setter(TY, &_static_name_for_getter_setter); \
+     } while (0)
+
+struct GDStringName _static_name_for_method;
+
+#define LEAN4_LOAD_METHOD_FN(NAME, ITY, TY, CSTR, HASH) \
+  do { \
+    string_name_new_with_latin1_chars(&_static_name_for_method, CSTR, true); \
+    NAME = (ITY) variant_get_ptr_builtin_method(TY, &_static_name_for_method, HASH); \
+  } while (0)
+
+
+
      
 #define REGISTER_LEAN_CLASS(NAME, FINALISER, FOREACH) \
   static lean_external_class * g_ ## NAME ## _class; \
@@ -69,6 +93,11 @@ GDExtensionInterfaceVariantNewCopy variant_new_copy = NULL;
 GDExtensionInterfaceVariantGetPtrDestructor variant_get_ptr_destructor = NULL;
 GDExtensionInterfaceVariantGetType variant_get_type = NULL;
 GDExtensionInterfaceVariantDuplicate variant_duplicate = NULL;
+GDExtensionInterfaceVariantGetConstantValue variant_get_constant_value = NULL;
+GDExtensionInterfaceVariantGetPtrSetter variant_get_ptr_setter = NULL;
+GDExtensionInterfaceVariantGetPtrGetter variant_get_ptr_getter = NULL;
+GDExtensionInterfaceVariantGetPtrConstructor variant_get_ptr_constructor = NULL;
+GDExtensionInterfaceVariantGetPtrBuiltinMethod variant_get_ptr_builtin_method = NULL;
 
 GDExtensionInterfaceVariantGetPtrUtilityFunction variant_get_ptr_utility_function = NULL;
 GDExtensionInterfaceGlobalGetSingleton global_get_singleton = NULL;
@@ -77,27 +106,24 @@ GDExtensionInterfaceGlobalGetSingleton global_get_singleton = NULL;
 GDExtensionInterfaceGetVariantFromTypeConstructor get_variant_from_type_constructor = NULL;
 GDExtensionInterfaceGetVariantToTypeConstructor get_variant_to_type_constructor = NULL;
 GDExtensionInterfaceStringNameNewWithLatin1Chars string_name_new_with_latin1_chars = NULL;
-/* ** Destructors */
+
+GDExtensionInterfaceClassdbRegisterExtensionClass2 classdb_register_extension_class2 = NULL;
+
+
+/* ** Lean Generated Files */
+/* *** builtin type enum helpers */
+#include "builtin_type_enum_helpers.h"
+
+/* *** Destructors */
 #include "builtin_type_destructor_decl.h"
 
-/* ** Conversions */
+/* *** Conversions */
 #include "builtin_type_conversion_decl.h"
 
-
-
-/* lean_obj *lean4_util_sin(double angle_rad) {
-  LEAN4_CHECK_FP_INIT_PURE(util_sin);
-  float angle_rad_arg = (float)angle_rad;
-  float ret_ty;
-  void args[] = [&angle_rad_arg];
-  util_sin(&ret_ty, args, 1);
-  return lean_box(ret_ty);
-}
- */
-/* ** Singletons */
+/* *** Singletons */
 #include "singleton_decl.h"
 
-/* ** Utilities */
+/* *** Utilities */
 inline static void noop_foreach(void *mod, b_lean_obj_arg fn) {}
 
 inline static void lean_godot_variant_finalizer(void *obj) {
@@ -114,13 +140,33 @@ inline static void lean_godot_Object_finalizer(void *obj) {
 REGISTER_LEAN_CLASS(lean_godot_Object, lean_godot_Object_finalizer, noop_foreach)
 
 
-/* ** Class Declarations */
+/* *** Class Declarations */
 #include "builtin_type_class_decl.h"
 
+/* *** declarations? */
 #include "declarations.h"
 
-/* ** Utility Functions */
+/* *** Utility Functions */
 #include "utility_func_decl.h"
+
+/* *** builtin type conversion functions  */
+
+#include "builtin_type_conversion_bindings.h"
+
+/* *** builtin type constant functions */
+
+#include "builtin_type_constant_bindings.h"
+
+/* *** builtin type member funs */
+
+#include "builtin_type_member_funs.h"
+
+/* *** builtin type constructors */
+#include "builtin_type_constructors.h"
+
+/* *** builtin type methods */
+
+#include "builtin_type_methods.h"
 
 /* ** Runtime setup */
 extern void lean_initialize_runtime_module();
@@ -152,6 +198,7 @@ lean_object *lean4_get_version() {
   return lean_io_result_mk_ok(obj);
 }
 
+/* *** String utils */
 GDExtensionInterfaceStringToUtf8Chars string_to_utf8_chars = NULL;
 lean_object *lean4_string_to_utf8_chars(lean_object *string) {
   LEAN4_CHECK_FP_INIT_PURE(string_to_utf8_chars);
@@ -179,6 +226,20 @@ lean_object *lean4_string_new_with_utf_chars(lean_object *string) {
   return res;
 }
 
+lean_object *lean4_string_to_variant(lean_object *obj) {
+   LEAN4_CHECK_FP_INIT_PURE(gd_string_to_variant);
+   LEAN4_CHECK_FP_INIT_PURE(mem_alloc);
+   
+   struct GDString *gdString = lean_get_external_data(obj);
+   struct GDVariant *res = (struct GDVariant *)mem_alloc(sizeof(*res));
+   gd_string_to_variant(res, gdString);
+
+   lean_object *resObj = lean_alloc_external(get_lean_godot_Variant_class(), (void *) res);
+  
+   return resObj;
+}
+/* *** String Name Utils */
+
 GDExtensionInterfaceStringNameNewWithUtf8CharsAndLen string_name_new_with_utf8_chars_and_len = NULL;
 lean_object *lean4_string_name_new_with_utf_chars(lean_object *string) {
   LEAN4_CHECK_FP_INIT_PURE(string_name_new_with_utf8_chars_and_len);
@@ -195,41 +256,20 @@ lean_object *lean4_string_name_new_with_utf_chars(lean_object *string) {
   return res;
 }
 
-
-lean_object *lean4_string_to_variant(lean_object *obj) {
-   LEAN4_CHECK_FP_INIT_PURE(gd_string_to_variant);
-   LEAN4_CHECK_FP_INIT_PURE(variant_new_copy);
-   LEAN4_CHECK_FP_INIT_PURE(mem_alloc);
-   
-   // doing a little jig here to avoid double frees
-   struct GDString *gdString = lean_get_external_data(obj);
-   struct GDVariant tmpRes;
-   gd_string_to_variant(&tmpRes, gdString);
-   struct GDVariant *res = (struct GDVariant *)mem_alloc(sizeof(*res));
-   variant_new_copy(res, &tmpRes);
-
-   lean_object *resObj = lean_alloc_external(get_lean_godot_Variant_class(), (void *) res);
-  
-   return resObj;
-}
-
-
 lean_object *lean4_string_name_to_variant(lean_object *obj) {
    LEAN4_CHECK_FP_INIT_PURE(gd_stringname_to_variant);
-   LEAN4_CHECK_FP_INIT_PURE(variant_new_copy);
    LEAN4_CHECK_FP_INIT_PURE(mem_alloc);
    
-   // doing a little jig here to avoid double frees
    struct GDStringName *gdString = lean_get_external_data(obj);
-   struct GDVariant tmpRes;
-   gd_stringname_to_variant(&tmpRes, gdString);
    struct GDVariant *res = (struct GDVariant *)mem_alloc(sizeof(*res));
-   variant_new_copy(res, &tmpRes);
+   gd_stringname_to_variant(res, gdString);
 
    lean_object *resObj = lean_alloc_external(get_lean_godot_Variant_class(), (void *) res);
   
    return resObj;
 }
+
+/* *** Variant Utils */
 
 GDExtensionInterfaceStringNewWithUtf8Chars string_new_with_utf8_chars = NULL;
 GDExtensionInterfaceVariantStringify variant_stringify = NULL;
@@ -255,6 +295,11 @@ lean_object *lean4_variant_stringify(lean_object *variant) {
   return res;  
 }
 
+/* *** Class utils */
+
+
+
+/* *** Link my bindings */
 
 void _link_my_bindings_clang_pls() {
   initialize_Bindings(1, lean_io_mk_world());
@@ -283,7 +328,6 @@ int _initialise_lean_state() {
   /* printf("[lean4-godot] finished initialisation!\n"); */
   return 0;
 }
-
 
 void lean4_godot_initialize_callback(void *userdata, GDExtensionInitializationLevel p_level) {
   if(p_level == GDEXTENSION_INITIALIZATION_EDITOR) {
@@ -325,12 +369,24 @@ GDExtensionBool lean_godot_gdnative_init(
   variant_new_copy = (GDExtensionInterfaceVariantNewCopy)p_get_proc_address("variant_new_copy");
   variant_duplicate = (GDExtensionInterfaceVariantDuplicate)p_get_proc_address("variant_duplicate");
   variant_destroy = (GDExtensionInterfaceVariantDestroy)p_get_proc_address("variant_destroy");
+  variant_get_constant_value = (GDExtensionInterfaceVariantGetConstantValue)p_get_proc_address("variant_get_constant_value");
+
+  variant_get_ptr_setter = (GDExtensionInterfaceVariantGetPtrSetter)p_get_proc_address("variant_get_ptr_setter");
+  variant_get_ptr_getter = (GDExtensionInterfaceVariantGetPtrGetter)p_get_proc_address("variant_get_ptr_getter");
+
+  variant_get_ptr_constructor = (GDExtensionInterfaceVariantGetPtrConstructor)p_get_proc_address("variant_get_ptr_constructor");
+
+  variant_get_ptr_builtin_method = (GDExtensionInterfaceVariantGetPtrBuiltinMethod)p_get_proc_address("variant_get_ptr_builtin_method");
+
+
+
   get_variant_from_type_constructor = (GDExtensionInterfaceGetVariantFromTypeConstructor)p_get_proc_address("get_variant_from_type_constructor");
   get_variant_to_type_constructor = (GDExtensionInterfaceGetVariantToTypeConstructor)p_get_proc_address("get_variant_to_type_constructor");
 
   variant_get_ptr_utility_function = (GDExtensionInterfaceVariantGetPtrUtilityFunction)p_get_proc_address("variant_get_ptr_utility_function");
   global_get_singleton = (GDExtensionInterfaceGlobalGetSingleton)p_get_proc_address("global_get_singleton");
 
+  classdb_register_extension_class2 = (GDExtensionInterfaceClassdbRegisterExtensionClass2)p_get_proc_address("classdb_register_extension_class2");
   
 
   #include "init.h"

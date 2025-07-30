@@ -1,6 +1,6 @@
 #!/bin/bash
 
-lake build
+# lake build
 
 if [[ "$(uname)" == "Darwin" ]]; then
   /Applications/Godot.app/Contents/MacOS/Godot -w -e .

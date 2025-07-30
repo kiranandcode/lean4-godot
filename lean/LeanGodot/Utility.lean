@@ -5,14 +5,15 @@ import LeanGodot.String
 import LeanGodot.Object
 import LeanGodot.RID
 import LeanGodot.PackedByteArray
+import LeanGodot.BuiltinTypes
 
 open Lean Meta Elab
+
 
 
 namespace Godot.Utility
 scoped syntax "#declare_utility_functions" : command
 
-def x := Array Float
 
 def buildType (ty: OString) : Command.CommandElabM (TSyntax `term) := match ty with
   | "Variant" => `(term| Godot.Variant)
@@ -39,14 +40,14 @@ elab_rules : command
           else if fn.arguments.length <= 7 && not (fn.is_vararg && fn.arguments.length == 1) then
             fn.arguments.foldrM (init:=retTy) (fun farg ret => do
               let ty <- buildType farg.type
-              `(term| $ty -> $ret)
+              `(term| (@& $ty) -> $ret)
             )
           else
               let firstType := fn.arguments[0]?.map (·.type) |>.get!
               if not $ fn.arguments.all (·.type == firstType) then
                   throwError s!"function {name} had too many arguments {repr fn.arguments}"
               let ty <- buildType firstType
-              `(term| Array $ty -> $retTy)
+              `(term| (@& OArray (@& $ty)) -> $retTy)
 
         Command.elabCommand (← `(command|
         @[extern $extern_name:str]
