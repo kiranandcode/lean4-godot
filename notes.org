@@ -146,10 +146,12 @@
 *** classdb_register_extension_class_method: LibraryToken -> &StringName -> &struct ClassMethodInfo
 *** classdb_register_extension_class_property: LibraryToken -> &StringName -> &ExtensionPropertyInfo -> &StringName -> &StringName
 
-
-* TODO Generate types for builtin class sizes
-* TODO Generate class member offsets?
-* TODO Look into memory allocation specifically for conversions string name to variant...
+* DONE Generate types for builtin class sizes
+CLOSED: [2025-08-06 Wed 17:16]
+* DONE Generate class member offsets?
+CLOSED: [2025-08-06 Wed 17:16]
+* DONE Look into memory allocation specifically for conversions string name to variant...
+CLOSED: [2025-08-06 Wed 17:16]
 - We retrieve a stringname, we convert it to a variant. does this copy the stringname? is it a problem if I call string_name_destroy?
 - Function name is gd_stringname_to_variant
 

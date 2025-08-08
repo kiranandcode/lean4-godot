@@ -99,15 +99,34 @@ GDExtensionInterfaceVariantGetPtrGetter variant_get_ptr_getter = NULL;
 GDExtensionInterfaceVariantGetPtrConstructor variant_get_ptr_constructor = NULL;
 GDExtensionInterfaceVariantGetPtrBuiltinMethod variant_get_ptr_builtin_method = NULL;
 
+GDExtensionInterfaceClassdbRegisterExtensionClass2 classdb_register_extension_class2 = NULL;
+GDExtensionInterfaceClassdbRegisterExtensionClassMethod classdb_register_extension_class_method = NULL;
+GDExtensionInterfaceClassdbRegisterExtensionClassProperty classdb_register_extension_class_property= NULL;
+
 GDExtensionInterfaceVariantGetPtrUtilityFunction variant_get_ptr_utility_function = NULL;
 GDExtensionInterfaceGlobalGetSingleton global_get_singleton = NULL;
+
+typedef void (*GDInt32FromVariantFunc)(int32_t *, struct GDVariant *);
+typedef void (*GDInt32ToVariantFunc)(struct GDVariant *, int32_t *);
+GDInt32ToVariantFunc gd_int32_to_variant_raw = NULL;
+GDInt32FromVariantFunc gd_int32_from_variant_raw = NULL;
+
+typedef void (*GDBoolFromVariantFunc)(bool *, struct GDVariant *);
+typedef void (*GDBoolToVariantFunc)(struct GDVariant *, bool *);
+GDBoolToVariantFunc gd_bool_to_variant_raw = NULL;
+GDBoolFromVariantFunc gd_bool_from_variant_raw = NULL;
+
+
+typedef void (*GDFloatFromVariantFunc)(double *, struct GDVariant *);
+typedef void (*GDFloatToVariantFunc)(struct GDVariant *, double *);
+GDFloatToVariantFunc gd_double_to_variant_raw = NULL;
+GDFloatFromVariantFunc gd_double_from_variant_raw = NULL;
 
 
 GDExtensionInterfaceGetVariantFromTypeConstructor get_variant_from_type_constructor = NULL;
 GDExtensionInterfaceGetVariantToTypeConstructor get_variant_to_type_constructor = NULL;
 GDExtensionInterfaceStringNameNewWithLatin1Chars string_name_new_with_latin1_chars = NULL;
 
-GDExtensionInterfaceClassdbRegisterExtensionClass2 classdb_register_extension_class2 = NULL;
 
 
 /* ** Lean Generated Files */
@@ -297,7 +316,69 @@ lean_object *lean4_variant_stringify(lean_object *variant) {
 
 /* *** Class utils */
 
+/* lean_object *lean4_register_extension_class */
+/*   ( */
+/*    lean_object *class_name, */
+/*    lean_object *parent_class_name, */
+/*    uint8_t is_virtual, */
+/*    uint8_t is_abstract, */
+/*    uint8_t is_exposed, */
+ 
+                                            
+/* ) { */
+/*   LEAN4_CHECK_FP_INIT(classdb_register_extension_class2); */
+/*   LEAN4_CHECK_FP_INIT(string_name_new_with_latin1_chars); */
+/*   LEAN4_CHECK_FP_INIT(library_token); */
 
+/*   GDStringName class_name_str; */
+/*   string_name_new_with_latin1_chars(&class_name_str, lean_string_cstr(class_name), false); */
+/*   GDStringName parent_class_name_str; */
+/*   string_name_new_with_latin1_chars(&parent_class_name_str, lean_string_cstr(parent_class_name), false); */
+
+/*   GDExtensionClassCreationInfo2 class_info = { */
+/*     .is_virtual = is_virtual, */
+/*     .is_abstract = is_abstract, */
+/*     .is_exposed = is_exposed, */
+/* 	GDExtensionClassSet set_func; */
+/* 	GDExtensionClassGet get_func; */
+/* 	GDExtensionClassGetPropertyList get_property_list_func; */
+/* 	GDExtensionClassFreePropertyList free_property_list_func; */
+/* 	GDExtensionClassPropertyCanRevert property_can_revert_func; */
+/* 	GDExtensionClassPropertyGetRevert property_get_revert_func; */
+/* 	GDExtensionClassValidateProperty validate_property_func; */
+/* 	GDExtensionClassNotification2 notification_func; */
+/* 	GDExtensionClassToString to_string_func; */
+/* 	GDExtensionClassReference reference_func; */
+/* 	GDExtensionClassUnreference unreference_func; */
+/* 	GDExtensionClassCreateInstance create_instance_func; // (Default) constructor; mandatory. If the class is not instantiable, consider making it virtual or abstract. */
+/* 	GDExtensionClassFreeInstance free_instance_func; // Destructor; mandatory. */
+/* 	GDExtensionClassRecreateInstance recreate_instance_func; */
+/* 	// Queries a virtual function by name and returns a callback to invoke the requested virtual function. */
+/* 	GDExtensionClassGetVirtual get_virtual_func; */
+/* 	// Paired with `call_virtual_with_data_func`, this is an alternative to `get_virtual_func` for extensions that */
+/* 	// need or benefit from extra data when calling virtual functions. */
+/* 	// Returns user data that will be passed to `call_virtual_with_data_func`. */
+/* 	// Returning `NULL` from this function signals to Godot that the virtual function is not overridden. */
+/* 	// Data returned from this function should be managed by the extension and must be valid until the extension is deinitialized. */
+/* 	// You should supply either `get_virtual_func`, or `get_virtual_call_data_func` with `call_virtual_with_data_func`. */
+/* 	GDExtensionClassGetVirtualCallData get_virtual_call_data_func; */
+/* 	// Used to call virtual functions when `get_virtual_call_data_func` is not null. */
+/* 	GDExtensionClassCallVirtualWithData call_virtual_with_data_func; */
+/* 	GDExtensionClassGetRID get_rid_func; */
+/* 	void *class_userdata; // Per-class user data, later accessible in instance bindings.   */
+/*   }; */
+
+/*   classdb_register_extension_class2( */
+/*       library_token, */
+/*       &class_name_str, */
+/*       &parent_class_name_str, */
+/*       &class_info */
+/*   ); */
+/*   string_name_destructor(&class_name_str); */
+/*   string_name_destructor(&parent_class_name_str); */
+
+/*   return lean_io_result_mk_ok(lean_box(0)); */
+/* } */
 
 /* *** Link my bindings */
 
@@ -307,6 +388,879 @@ void _link_my_bindings_clang_pls() {
 }
 
 /* * Helpers */
+/* ** Lean Godot Variant Wrap/Unwrap */
+/* *** Lean Godot Variant Wrap */
+
+lean_object *lean4_godot_wrap(GDExtensionVariantType tag, GDExtensionVariantPtr variant) {
+  lean_object *res = lean_box(0);
+  switch (tag) {
+  GDEXTENSION_VARIANT_TYPE_NIL: break;
+  GDEXTENSION_VARIANT_TYPE_BOOL:
+  GDEXTENSION_VARIANT_TYPE_INT:
+    res = lean_box(*(int32_t *)variant);
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_FLOAT:
+    res = lean_box_float(*(double *)variant);
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_STRING:
+    res = lean_alloc_external(get_lean_godot_String_class(), variant);
+    break;
+    /* math types */
+  GDEXTENSION_VARIANT_TYPE_VECTOR2:
+    res = lean_alloc_external(get_lean_godot_Vector2_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_VECTOR2I:
+    res = lean_alloc_external(get_lean_godot_Vector2i_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_RECT2:
+    res = lean_alloc_external(get_lean_godot_Rect2_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_RECT2I:
+    res = lean_alloc_external(get_lean_godot_Rect2i_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_VECTOR3:
+    res = lean_alloc_external(get_lean_godot_Vector3_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_VECTOR3I:
+    res = lean_alloc_external(get_lean_godot_Vector3i_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_TRANSFORM2D:
+    res = lean_alloc_external(get_lean_godot_Transform2D_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_VECTOR4:
+    res = lean_alloc_external(get_lean_godot_Vector4_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_VECTOR4I:
+    res = lean_alloc_external(get_lean_godot_Vector4i_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_PLANE:
+    res = lean_alloc_external(get_lean_godot_Plane_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_QUATERNION:
+    res = lean_alloc_external(get_lean_godot_Quaternion_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_AABB:
+    res = lean_alloc_external(get_lean_godot_AABB_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_BASIS:
+    res = lean_alloc_external(get_lean_godot_Basis_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_TRANSFORM3D:
+    res = lean_alloc_external(get_lean_godot_Transform3D_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_PROJECTION:
+    res = lean_alloc_external(get_lean_godot_Projection_class(), variant);
+    break;
+
+    /* misc types */
+  GDEXTENSION_VARIANT_TYPE_COLOR:
+    res = lean_alloc_external(get_lean_godot_Color_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_STRING_NAME:
+    res = lean_alloc_external(get_lean_godot_StringName_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_NODE_PATH:
+    res = lean_alloc_external(get_lean_godot_NodePath_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_RID:
+    res = lean_alloc_external(get_lean_godot_RID_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_OBJECT:
+    res = lean_alloc_external(get_lean_godot_Object_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_CALLABLE:
+    res = lean_alloc_external(get_lean_godot_Callable_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_SIGNAL:
+    res = lean_alloc_external(get_lean_godot_Signal_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_DICTIONARY:
+    res = lean_alloc_external(get_lean_godot_Dictionary_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_ARRAY:
+    res = lean_alloc_external(get_lean_godot_Array_class(), variant);
+    break;
+
+    /* typed arrays */
+  GDEXTENSION_VARIANT_TYPE_PACKED_BYTE_ARRAY:
+    res = lean_alloc_external(get_lean_godot_PackedByteArray_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_PACKED_INT32_ARRAY:
+    res = lean_alloc_external(get_lean_godot_PackedInt32Array_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_PACKED_INT64_ARRAY:
+    res = lean_alloc_external(get_lean_godot_PackedInt64Array_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_PACKED_FLOAT32_ARRAY:
+    res = lean_alloc_external(get_lean_godot_PackedFloat32Array_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_PACKED_FLOAT64_ARRAY:
+    res = lean_alloc_external(get_lean_godot_PackedFloat64Array_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_PACKED_STRING_ARRAY:
+    res = lean_alloc_external(get_lean_godot_PackedStringArray_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR2_ARRAY:
+    res = lean_alloc_external(get_lean_godot_PackedVector2Array_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR3_ARRAY:
+    res = lean_alloc_external(get_lean_godot_PackedVector3Array_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_PACKED_COLOR_ARRAY:
+    res = lean_alloc_external(get_lean_godot_PackedColorArray_class(), variant);
+    break;
+  GDEXTENSION_VARIANT_TYPE_VARIANT_MAX:
+  default:
+    break;
+  }
+  return res;
+}
+
+lean_object *lean4_godot_wrap_variant(GDExtensionVariantType tag, GDExtensionVariantPtr variant) {
+  lean_object *res = lean_box(0);
+  switch (tag) {
+  GDEXTENSION_VARIANT_TYPE_NIL: break;
+  GDEXTENSION_VARIANT_TYPE_BOOL: {
+      bool out;
+      gd_bool_from_variant_raw(&out, variant);
+      res = lean_box(out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_INT: {
+      int32_t out;
+      gd_int32_from_variant_raw(&out, variant);
+      res = lean_box(out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_FLOAT: {
+      double out;
+      gd_double_from_variant_raw(&out, variant);
+      res = lean_box_float(out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_STRING: {
+      struct GDString *out = (struct GDString *) mem_alloc(sizeof(*out));
+      gd_string_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_String_class(), out);
+      break;
+    }
+    /* math types */
+  GDEXTENSION_VARIANT_TYPE_VECTOR2: {
+      struct GDVector2 *out = (struct GDVector2 *) mem_alloc(sizeof(*out));
+      gd_vector2_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Vector2_class(), out);
+      break;
+    }
+  GDEXTENSION_VARIANT_TYPE_VECTOR2I: {
+      struct GDVector2i *out = (struct GDVector2i *) mem_alloc(sizeof(*out)); 
+      gd_vector2i_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Vector2i_class(), out);
+      break;
+    }
+  GDEXTENSION_VARIANT_TYPE_RECT2: {
+      struct GDRect2 *out = (struct GDRect2 *) mem_alloc(sizeof(*out));
+      gd_rect2_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Rect2_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_RECT2I: {
+      struct GDRect2i *out = (struct GDRect2i *) mem_alloc(sizeof(*out));
+      gd_rect2i_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Rect2i_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_VECTOR3: {
+      struct GDVector3 *out = (struct GDVector3 *) mem_alloc(sizeof(*out));
+      gd_vector3_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Vector3_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_VECTOR3I: {
+      struct GDVector3i *out = (struct GDVector3i *) mem_alloc(sizeof(*out));
+      gd_vector3i_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Vector3i_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_TRANSFORM2D: {
+      struct GDTransform2D *out = (struct GDTransform2D *) mem_alloc(sizeof(*out));
+      gd_transform2d_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Transform2D_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_VECTOR4: {
+      struct GDVector4 *out = (struct GDVector4 *) mem_alloc(sizeof(*out));
+      gd_vector4_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Vector4_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_VECTOR4I: {
+      struct GDVector4i *out = (struct GDVector4i *) mem_alloc(sizeof(*out));
+      gd_vector4i_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Vector4i_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_PLANE: {
+      struct GDPlane *out = (struct GDPlane *) mem_alloc(sizeof(*out));
+      gd_plane_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Plane_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_QUATERNION: {
+      struct GDQuaternion *out = (struct GDQuaternion *) mem_alloc(sizeof(*out));
+      gd_quaternion_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Quaternion_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_AABB: {
+      struct GDAABB *out = (struct GDAABB *) mem_alloc(sizeof(*out));
+      gd_aabb_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_AABB_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_BASIS: {
+      struct GDBasis *out = (struct GDBasis *) mem_alloc(sizeof(*out));
+      gd_basis_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Basis_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_TRANSFORM3D: {
+      struct GDTransform3D *out = (struct GDTransform3D *) mem_alloc(sizeof(*out));
+      gd_transform3d_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Transform3D_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_PROJECTION: {
+      struct GDProjection *out = (struct GDProjection *) mem_alloc(sizeof(*out));
+      gd_projection_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Projection_class(), out);
+      break;
+    }
+
+
+    /* misc types */
+  GDEXTENSION_VARIANT_TYPE_COLOR: {
+      struct GDColor *out = (struct GDColor *) mem_alloc(sizeof(*out));
+      gd_color_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Color_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_STRING_NAME: {
+      struct GDStringName *out = (struct GDStringName *) mem_alloc(sizeof(*out));
+      gd_stringname_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_StringName_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_NODE_PATH: {
+      struct GDNodePath *out = (struct GDNodePath *) mem_alloc(sizeof(*out));
+      gd_nodepath_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_NodePath_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_RID: {
+      struct GDRID *out = (struct GDRID *) mem_alloc(sizeof(*out));
+      gd_rid_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_RID_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_OBJECT: {
+      res = (lean_object *)variant;
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_CALLABLE: {
+      struct GDCallable *out = (struct GDCallable *) mem_alloc(sizeof(*out));
+      gd_callable_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Callable_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_SIGNAL: {
+      struct GDSignal *out = (struct GDSignal *) mem_alloc(sizeof(*out));
+      gd_signal_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Signal_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_DICTIONARY: {
+      struct GDDictionary *out = (struct GDDictionary *) mem_alloc(sizeof(*out));
+      gd_dictionary_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Dictionary_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_ARRAY: {
+      struct GDArray *out = (struct GDArray *) mem_alloc(sizeof(*out));
+      gd_array_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_Array_class(), out);
+      break;
+    }
+
+
+    /* typed arrays */
+  GDEXTENSION_VARIANT_TYPE_PACKED_BYTE_ARRAY: {
+      struct GDPackedByteArray *out = (struct GDPackedByteArray *) mem_alloc(sizeof(*out));
+      gd_packedbytearray_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_PackedByteArray_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_INT32_ARRAY: {
+      struct GDPackedInt32Array *out = (struct GDPackedInt32Array *) mem_alloc(sizeof(*out));
+      gd_packedint32array_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_PackedInt32Array_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_INT64_ARRAY: {
+      struct GDPackedInt64Array *out = (struct GDPackedInt64Array *) mem_alloc(sizeof(*out));
+      gd_packedint64array_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_PackedInt64Array_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_FLOAT32_ARRAY: {
+      struct GDPackedFloat32Array *out = (struct GDPackedFloat32Array *) mem_alloc(sizeof(*out));
+      gd_packedfloat32array_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_PackedFloat32Array_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_FLOAT64_ARRAY: {
+      struct GDPackedFloat64Array *out = (struct GDPackedFloat64Array *) mem_alloc(sizeof(*out));
+      gd_packedfloat64array_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_PackedFloat64Array_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_STRING_ARRAY: {
+      struct GDPackedStringArray *out = (struct GDPackedStringArray *) mem_alloc(sizeof(*out));
+      gd_packedstringarray_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_PackedStringArray_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR2_ARRAY: {
+      struct GDPackedVector2Array *out = (struct GDPackedVector2Array *) mem_alloc(sizeof(*out));
+      gd_packedvector2array_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_PackedVector2Array_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR3_ARRAY: {
+      struct GDPackedVector3Array *out = (struct GDPackedVector3Array *) mem_alloc(sizeof(*out));
+      gd_packedvector3array_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_PackedVector3Array_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_COLOR_ARRAY: { 
+      struct GDPackedColorArray *out = (struct GDPackedColorArray *) mem_alloc(sizeof(*out));
+      gd_packedcolorarray_from_variant(out, variant);
+      res = lean_alloc_external(get_lean_godot_PackedColorArray_class(), out);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_VARIANT_MAX:
+  default:
+    break;
+  }
+  return res;
+}
+
+/* *** Lean Godot Variant Unwrap */
+void lean4_godot_unwrap(GDExtensionVariantType tag, lean_object *res, GDExtensionVariantPtr out) {
+  switch (tag) {
+  GDEXTENSION_VARIANT_TYPE_NIL: break;
+  GDEXTENSION_VARIANT_TYPE_BOOL:
+  GDEXTENSION_VARIANT_TYPE_INT:
+    *(int32_t *)out = (int32_t)lean_unbox(res);
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_FLOAT:
+    *(double *)out = lean_unbox_float(res);
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_STRING:
+  GDEXTENSION_VARIANT_TYPE_VECTOR2:
+  GDEXTENSION_VARIANT_TYPE_VECTOR2I:
+  GDEXTENSION_VARIANT_TYPE_RECT2:
+  GDEXTENSION_VARIANT_TYPE_RECT2I:
+  GDEXTENSION_VARIANT_TYPE_VECTOR3:
+  GDEXTENSION_VARIANT_TYPE_VECTOR3I:
+  GDEXTENSION_VARIANT_TYPE_TRANSFORM2D:
+  GDEXTENSION_VARIANT_TYPE_VECTOR4:
+  GDEXTENSION_VARIANT_TYPE_VECTOR4I:
+  GDEXTENSION_VARIANT_TYPE_PLANE:
+  GDEXTENSION_VARIANT_TYPE_QUATERNION:
+  GDEXTENSION_VARIANT_TYPE_AABB:
+  GDEXTENSION_VARIANT_TYPE_BASIS:
+  GDEXTENSION_VARIANT_TYPE_TRANSFORM3D:
+  GDEXTENSION_VARIANT_TYPE_PROJECTION:
+
+    /* misc types */
+  GDEXTENSION_VARIANT_TYPE_COLOR:
+  GDEXTENSION_VARIANT_TYPE_STRING_NAME:
+  GDEXTENSION_VARIANT_TYPE_NODE_PATH:
+  GDEXTENSION_VARIANT_TYPE_RID:
+  GDEXTENSION_VARIANT_TYPE_OBJECT:
+  GDEXTENSION_VARIANT_TYPE_CALLABLE:
+  GDEXTENSION_VARIANT_TYPE_SIGNAL:
+  GDEXTENSION_VARIANT_TYPE_DICTIONARY:
+  GDEXTENSION_VARIANT_TYPE_ARRAY:
+
+    /* typed arrays */
+  GDEXTENSION_VARIANT_TYPE_PACKED_BYTE_ARRAY:
+  GDEXTENSION_VARIANT_TYPE_PACKED_INT32_ARRAY:
+  GDEXTENSION_VARIANT_TYPE_PACKED_INT64_ARRAY:
+  GDEXTENSION_VARIANT_TYPE_PACKED_FLOAT32_ARRAY:
+  GDEXTENSION_VARIANT_TYPE_PACKED_FLOAT64_ARRAY:
+  GDEXTENSION_VARIANT_TYPE_PACKED_STRING_ARRAY:
+  GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR2_ARRAY:
+  GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR3_ARRAY:
+  GDEXTENSION_VARIANT_TYPE_PACKED_COLOR_ARRAY:
+    *(void **)out = lean_get_external_data(res);
+    break;
+  GDEXTENSION_VARIANT_TYPE_VARIANT_MAX:
+  default:
+    break;
+  }
+}
+
+void lean4_godot_unwrap_variant(GDExtensionVariantType tag, lean_object *res, GDExtensionVariantPtr out) {
+  // obj contains the raw value, need to extract, and write into variant
+  switch (tag) {
+  GDEXTENSION_VARIANT_TYPE_NIL: break;
+  GDEXTENSION_VARIANT_TYPE_BOOL: {
+      bool outTmp = (bool)lean_unbox(res);
+      gd_bool_to_variant_raw(out, &outTmp);
+      break;
+    }
+
+  GDEXTENSION_VARIANT_TYPE_INT: {
+      int32_t outTmp = (int32_t)lean_unbox(res);
+      gd_int32_to_variant_raw(out, &outTmp);
+
+      break;
+    }
+
+
+  GDEXTENSION_VARIANT_TYPE_FLOAT: {
+      double outTmp = (double)lean_unbox_float(res);
+      gd_double_to_variant_raw(out, &outTmp);
+
+      break;
+    }
+
+
+  GDEXTENSION_VARIANT_TYPE_STRING:
+    gd_string_to_variant(out, (struct GDString *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_VECTOR2:
+    gd_vector2_to_variant(out, (struct GDVector2 *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_VECTOR2I:
+    gd_vector2i_to_variant(out, (struct GDVector2i *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_RECT2:
+    gd_rect2_to_variant(out, (struct GDRect2 *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_RECT2I:
+    gd_rect2i_to_variant(out, (struct GDRect2i *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_VECTOR3:
+    gd_vector3_to_variant(out, (struct GDVector3 *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_VECTOR3I:
+    gd_vector3i_to_variant(out, (struct GDVector3i *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_TRANSFORM2D:
+    gd_transform2d_to_variant(out, (struct GDTransform2D *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_VECTOR4:
+    gd_vector4_to_variant(out, (struct GDVector4 *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_VECTOR4I:
+    gd_vector4i_to_variant(out, (struct GDVector4i *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_PLANE:
+    gd_plane_to_variant(out, (struct GDPlane *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_QUATERNION:
+    gd_quaternion_to_variant(out, (struct GDQuaternion *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_AABB:
+    gd_aabb_to_variant(out, (struct GDAABB *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_BASIS:
+    gd_basis_to_variant(out, (struct GDBasis *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_TRANSFORM3D:
+    gd_transform3d_to_variant(out, (struct GDTransform3D *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_PROJECTION:
+    gd_projection_to_variant(out, (struct GDProjection *)lean_get_external_data(res));
+    break;
+
+
+    /* misc types */
+  GDEXTENSION_VARIANT_TYPE_COLOR:
+    gd_color_to_variant(out, (struct GDColor *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_STRING_NAME:
+    gd_stringname_to_variant(out, (struct GDStringName *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_NODE_PATH:
+    gd_nodepath_to_variant(out, (struct GDNodePath *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_RID:
+    gd_rid_to_variant(out, (struct GDRID *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_OBJECT:
+    *(void **)out = res;
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_CALLABLE:
+    gd_callable_to_variant(out, (struct GDCallable *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_SIGNAL:
+    gd_signal_to_variant(out, (struct GDSignal *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_DICTIONARY:
+    gd_dictionary_to_variant(out, (struct GDDictionary *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_ARRAY:
+    gd_array_to_variant(out, (struct GDArray *)lean_get_external_data(res));
+    break;
+
+
+    /* typed arrays */
+  GDEXTENSION_VARIANT_TYPE_PACKED_BYTE_ARRAY:
+    gd_packedbytearray_to_variant(out, (struct GDPackedByteArray *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_INT32_ARRAY:
+    gd_packedint32array_to_variant(out, (struct GDPackedInt32Array *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_INT64_ARRAY:
+    gd_packedint64array_to_variant(out, (struct GDPackedInt64Array *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_FLOAT32_ARRAY:
+    gd_packedfloat32array_to_variant(out, (struct GDPackedFloat32Array *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_FLOAT64_ARRAY:
+    gd_packedfloat64array_to_variant(out, (struct GDPackedFloat64Array *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_STRING_ARRAY:
+    gd_packedstringarray_to_variant(out, (struct GDPackedStringArray *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR2_ARRAY:
+    gd_packedvector2array_to_variant(out, (struct GDPackedVector2Array *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR3_ARRAY:
+    gd_packedvector3array_to_variant(out, (struct GDPackedVector3Array *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_PACKED_COLOR_ARRAY:
+    gd_packedcolorarray_to_variant(out, (struct GDPackedColorArray *)lean_get_external_data(res));
+    break;
+
+  GDEXTENSION_VARIANT_TYPE_VARIANT_MAX:
+  default:
+    break;
+  }
+}
+
+
+/* ** Lean Godot Function call */
+/* *** Lean Godot Method Call */
+void lean4_godot_method_call(
+     void *method_object_raw, void *self_raw,
+     const GDExtensionConstVariantPtr *p_args,
+     GDExtensionInt p_argument_count,
+     GDExtensionVariantPtr r_return,
+     GDExtensionCallError *r_error) {
+  lean_object *method_object = (lean_object *)method_object_raw;
+  lean_object *self = (lean_object *)self_raw;
+
+  lean_object *args_array = lean_ctor_get(method_object, 0);
+  GDExtensionVariantType ret_ty = lean_unbox(lean_ctor_get(method_object, 1));
+  lean_object *func_obj = lean_ctor_get(method_object, 2);
+
+  size_t expected_args = lean_array_size(args_array);
+  if(p_argument_count != expected_args) {
+    r_error->error = GDEXTENSION_CALL_ERROR_INVALID_ARGUMENT;
+    r_error->expected = (int32_t)expected_args;
+    return;
+  }
+  
+  lean_object *lean_args[p_argument_count + 1 + 1] = {}; // 1 for self, 1 for world parameter
+  lean_inc(self);
+  lean_args[0] = self;
+  lean_args[p_argument_count + 1] = lean_box(0);
+  bool failed = false;
+
+  for(size_t i = 0; i < p_argument_count; i++) {
+    GDExtensionVariantType expt_tag = lean_unbox(lean_array_cptr(args_array)[i]);
+    GDExtensionVariantType actual_tag = lean_unbox(lean_array_cptr(args_array)[i]);
+      if (expt_tag != actual_tag) {
+        r_error->error = GDEXTENSION_CALL_ERROR_INVALID_ARGUMENT;
+        r_error->expected = expt_tag;
+        r_error->argument = i;
+        failed = true;
+        break;
+      }
+
+    
+    lean_args[i + 1] = lean4_godot_wrap_variant(expt_tag, (struct GDVariant *)(void *)p_args[i]);
+  }
+  if(failed) {
+    for(size_t i = 0; i < r_error->argument; i++) {
+      lean_dec(lean_args[i + 1]);
+    };
+    lean_dec(lean_args[0]);
+    return;
+  }
+  
+  lean_object *res = lean_apply_n(func_obj, p_argument_count + 1 + 1, lean_args);
+  if(!lean_io_result_is_ok(res)) {
+    r_error->error  = GDEXTENSION_CALL_ERROR_INVALID_METHOD;
+    lean_io_result_show_error(res);
+    lean_dec(res);
+    return;
+  }
+
+  lean_object *ok_val = lean_io_result_get_value(res);
+  lean4_godot_unwrap_variant(ret_ty, ok_val, r_return);
+  r_error->error = GDEXTENSION_CALL_OK;
+
+  lean_dec(ok_val);
+  lean_dec(res);
+}
+
+/* *** Lean Godot Method PtrCall */
+void lean4_godot_method_ptrcall(
+     void *method_object_raw, void *self_raw,
+     const GDExtensionConstVariantPtr *p_args,
+     GDExtensionVariantPtr r_return) {
+  lean_object *method_object = (lean_object *)method_object_raw;
+  lean_object *self = (lean_object *)self_raw;
+
+  lean_object *args_array = lean_ctor_get(method_object, 0);
+  GDExtensionVariantType ret_ty = lean_unbox(lean_ctor_get(method_object, 1));
+  lean_object *func_obj = lean_ctor_get(method_object, 2);
+
+  size_t p_argument_count = lean_array_size(args_array);
+  
+  lean_object *lean_args[p_argument_count + 1 + 1] = {}; // 1 for self, 1 for world parameter
+  lean_inc(self);
+  lean_args[0] = self;
+  lean_args[p_argument_count + 1] = lean_box(0);
+
+  for(size_t i = 0; i < p_argument_count; i++) {
+    // based on type from function object, wrap argument into lean object for call
+    // p_args[i]
+    GDExtensionVariantType tag = lean_unbox(lean_array_cptr(args_array)[i]);
+    lean_args[i + 1] = lean4_godot_wrap(tag, (void *)p_args[i]);
+  }
+  lean_object *res = lean_apply_n(func_obj, p_argument_count + 1 + 1, lean_args);
+  if(!lean_io_result_is_ok(res)) {
+    lean_io_result_show_error(res);
+    lean_dec(res);
+    return;
+  }
+
+  lean_object *ok_val = lean_io_result_get_value(res);
+  lean4_godot_unwrap(ret_ty, ok_val, r_return);
+
+  lean_dec(ok_val);
+  lean_dec(res);
+}
+
+/* *** Lean Godot Bind */
+
+#define LEAN_UNWRAP_STRINGNAME(DEST, LEAN_OBJ) string_name_new_with_utf8_chars_and_len(DEST, lean_string_cstr(LEAN_OBJ), lean_string_len(LEAN_OBJ))
+#define LEAN_UNWRAP_STRING(DEST, LEAN_OBJ) string_new_with_utf8_chars_and_len(DEST, lean_string_cstr(LEAN_OBJ), lean_string_len(LEAN_OBJ))
+
+
+lean_object *lean4_register_extension_class_method(lean_object *class_name, lean_object *class_method_object) {
+  // gd_class_name
+  struct GDStringName gd_class_name;
+  LEAN_UNWRAP_STRINGNAME(&gd_class_name,class_name);
+
+  GDExtensionClassMethodInfo method_info;
+
+  // StringNamePtr
+  struct GDStringName method_name;
+  lean_object *method_name_obj = lean_ctor_get(class_method_object, 0);
+  LEAN_UNWRAP_STRINGNAME(&method_name,method_name_obj);
+
+  method_info.name = &method_name;
+  method_info.method_userdata = lean_ctor_get(class_method_object, 1);//
+
+  method_info.call_func = lean4_godot_method_call;
+  method_info.ptrcall_func = lean4_godot_method_ptrcall;
+  method_info.method_flags = lean_unbox(lean_ctor_get(class_method_object, 2)); //
+  
+
+  lean_object *return_value_info_obj = lean_ctor_get(class_method_object, 3);
+  GDExtensionPropertyInfo returnValuePropertyInfo;
+  struct GDStringName returnValuePropertyName;
+  struct GDStringName returnValuePropertyClassName;
+  struct GDString returnValuePropertyHintString;
+  /* GDExtensionBool */
+  method_info.has_return_value = lean_option_is_some(return_value_info_obj); //
+  if(method_info.has_return_value) {
+    /* GDExtensionPropertyInfo * */
+    method_info.return_value_info = &returnValuePropertyInfo; //
+    return_value_info_obj = lean_ctor_get(return_value_info_obj, 0);
+
+    returnValuePropertyInfo.type = lean_unbox(lean_ctor_get(return_value_info_obj, 0));
+
+    lean_object *return_value_name_obj = lean_ctor_get(return_value_info_obj, 1);
+    returnValuePropertyInfo.name = &returnValuePropertyName;
+    LEAN_UNWRAP_STRINGNAME(&returnValuePropertyName,return_value_name_obj);
+
+    lean_object *return_value_class_name_obj = lean_ctor_get(return_value_info_obj, 2);
+    returnValuePropertyInfo.class_name = &returnValuePropertyClassName;
+    LEAN_UNWRAP_STRINGNAME(&returnValuePropertyClassName, return_value_class_name_obj);
+
+    returnValuePropertyInfo.hint = lean_unbox(lean_ctor_get(return_value_info_obj, 3));
+
+    lean_object *return_value_hint_string = lean_ctor_get(return_value_info_obj, 4);
+    returnValuePropertyInfo.hint_string = &returnValuePropertyHintString;
+    LEAN_UNWRAP_STRING(&returnValuePropertyHintString,return_value_hint_string);
+
+    returnValuePropertyInfo.usage = lean_unbox(lean_ctor_get(return_value_info_obj,5));
+
+  } else {
+    /* GDExtensionPropertyInfo * */
+    method_info.return_value_info = NULL; //
+  }
+  method_info.return_value_metadata = GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE; //
+
+  lean_object *method_arginfo_array = lean_ctor_get(class_method_object, 4);
+  method_info.argument_count = lean_array_size(method_arginfo_array);
+
+  GDExtensionPropertyInfo arginfo_array[method_info.argument_count] = {};
+  struct GDStringName arginfo_name_array[method_info.argument_count] = {};
+  struct GDStringName arginfo_class_name_array[method_info.argument_count] = {};
+  struct GDString arginfo_hint_string_array[method_info.argument_count] = {};
+
+  method_info.arguments_info = arginfo_array; //
+
+  GDExtensionClassMethodArgumentMetadata argmetadata_array[method_info.argument_count] = {};
+  method_info.arguments_metadata = argmetadata_array; //
+
+  for(size_t i = 0; i < method_info.argument_count; i++) {
+    lean_object *property_info = lean_array_cptr(method_arginfo_array)[i];
+
+    arginfo_array[i].type = lean_unbox(lean_ctor_get(property_info, 0));
+
+    arginfo_array[i].name = &arginfo_name_array[i];
+    LEAN_UNWRAP_STRINGNAME(arginfo_array[i].name,lean_ctor_get(property_info, 1));
+
+    arginfo_array[i].class_name = &arginfo_class_name_array[i];
+    LEAN_UNWRAP_STRINGNAME(arginfo_array[i].class_name,lean_ctor_get(property_info, 2));
+
+    arginfo_array[i].hint = lean_unbox(lean_ctor_get(property_info, 3));
+
+    arginfo_array[i].hint_string = &arginfo_hint_string_array[i];
+    LEAN_UNWRAP_STRING(arginfo_array[i].hint_string,lean_ctor_get(property_info, 4));
+
+    arginfo_array[i].usage = lean_unbox(lean_ctor_get(property_info, 5));
+
+    argmetadata_array[i] = GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE;
+  }
+
+  // don't support default arguments
+  method_info.default_argument_count = 0;
+  method_info.default_arguments = NULL;
+
+
+  classdb_register_extension_class_method(
+        library_token,
+        &gd_class_name,
+        &method_info
+  );
+
+  // cleanup
+  for(size_t i = 0; i < method_info.argument_count; i++) {
+    gd_stringname_destructor(arginfo_array[i].name);
+    gd_stringname_destructor(arginfo_array[i].class_name);
+    gd_string_destructor(arginfo_array[i].hint_string);
+  }
+  if(method_info.return_value_info != NULL) {
+    gd_stringname_destructor(&returnValuePropertyName);
+    gd_stringname_destructor(&returnValuePropertyClassName);
+    gd_string_destructor(&returnValuePropertyHintString);
+  }
+
+  gd_stringname_destructor(&gd_class_name);
+  gd_stringname_destructor(&method_name);
+
+  return lean_io_result_mk_ok(lean_box(0));
+}
+
+
+lean_object *lean4_kiran_example(lean_object *self, lean_object *method) {
+  printf("calling_lean4_kiran_example\n");
+
+
+
+  return lean_io_result_mk_ok(lean_box(0));
+}
+
+
+/* ** Lean state */
 int _initialise_lean_state() {
   /* printf("[lean4-godot] calling initialise_lean_state\n"); */
   lean_initialize();
@@ -329,6 +1283,7 @@ int _initialise_lean_state() {
   return 0;
 }
 
+/* ** Godot->Lean init callback  */
 void lean4_godot_initialize_callback(void *userdata, GDExtensionInitializationLevel p_level) {
   if(p_level == GDEXTENSION_INITIALIZATION_EDITOR) {
     #include "init_after.h"
@@ -338,6 +1293,7 @@ void lean4_godot_initialize_callback(void *userdata, GDExtensionInitializationLe
   LEAN4_CALL_IO(res,lean_godot_on_initialization(p_level));
 }
 
+/* ** Godot->Lean de-init callback  */
 void lean4_godot_deinitialize_callback(void *userdata, GDExtensionInitializationLevel p_level) {
   /* printf("[lean4-godot] deinitialisation level %d\n", p_level); */
   lean_object *res;
@@ -387,7 +1343,22 @@ GDExtensionBool lean_godot_gdnative_init(
   global_get_singleton = (GDExtensionInterfaceGlobalGetSingleton)p_get_proc_address("global_get_singleton");
 
   classdb_register_extension_class2 = (GDExtensionInterfaceClassdbRegisterExtensionClass2)p_get_proc_address("classdb_register_extension_class2");
+
+  classdb_register_extension_class_method = (GDExtensionInterfaceClassdbRegisterExtensionClassMethod)p_get_proc_address("classdb_register_extension_class_method");
+  classdb_register_extension_class_property = (GDExtensionInterfaceClassdbRegisterExtensionClassProperty)p_get_proc_address("classdb_register_extension_class_property");
+
+
   
+  gd_int32_to_variant_raw = (GDInt32ToVariantFunc)get_variant_from_type_constructor(GDEXTENSION_VARIANT_TYPE_INT);
+  gd_int32_from_variant_raw = (GDInt32FromVariantFunc)get_variant_to_type_constructor(GDEXTENSION_VARIANT_TYPE_INT);
+
+  gd_bool_to_variant_raw = (GDBoolToVariantFunc)get_variant_from_type_constructor(GDEXTENSION_VARIANT_TYPE_BOOL);
+  gd_bool_from_variant_raw = (GDBoolFromVariantFunc)get_variant_to_type_constructor(GDEXTENSION_VARIANT_TYPE_BOOL);
+
+  gd_double_to_variant_raw = (GDFloatToVariantFunc)get_variant_from_type_constructor(GDEXTENSION_VARIANT_TYPE_FLOAT);
+  gd_double_from_variant_raw = (GDFloatFromVariantFunc)get_variant_to_type_constructor(GDEXTENSION_VARIANT_TYPE_FLOAT);
+
+
 
   #include "init.h"
 

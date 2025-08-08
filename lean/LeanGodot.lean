@@ -7,11 +7,13 @@ import LeanGodot.String
 import LeanGodot.StringName
 import LeanGodot.Utility
 import LeanGodot.BuiltinTypes
+import LeanGodot.FunctionWrapper
 import Bindings
 
 namespace Godot
 
-
+@[extern "lean4_kiran_example"]
+opaque kiran_example: IO.Ref Int -> Method (IO.Ref Int) -> IO Unit
 
 @[export lean_godot_on_initialization]
 def on_initialization (lvl: Initialization.Level) : IO Unit := do
@@ -63,6 +65,10 @@ def on_initialization (lvl: Initialization.Level) : IO Unit := do
   gd_print_error! "cubic interpolate in time is {ex}"
   let basis <- Godot.Basis.from_scale vec3
   gd_print_error! "basis is {basis}"
+  let ref <- IO.mkRef 0
+  kiran_example ref Godot.exampleMethod
+  let vl <- ref.get
+  println! "result back from ffi again is {vl}"
 
   /- gd_eprint! "printing!!! {var_str}"
  -/
