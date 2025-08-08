@@ -58,4 +58,4 @@ instance : HAdd ClassMethodFlags ClassMethodFlags ClassMethodFlags where
 
 end Godot.Enums
 
-#print Godot.Enums.VerticalAlignment
+-- #print Godot.Enums.VerticalAlignment

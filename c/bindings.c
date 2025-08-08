@@ -73,7 +73,8 @@ struct GDStringName _static_name_for_method;
   } while (0)
 
 
-
+#define LEAN_UNWRAP_STRINGNAME(DEST, LEAN_OBJ) string_name_new_with_utf8_chars_and_len(DEST, lean_string_cstr(LEAN_OBJ), lean_string_len(LEAN_OBJ))
+#define LEAN_UNWRAP_STRING(DEST, LEAN_OBJ) string_new_with_utf8_chars_and_len(DEST, lean_string_cstr(LEAN_OBJ), lean_string_len(LEAN_OBJ))
      
 #define REGISTER_LEAN_CLASS(NAME, FINALISER, FOREACH) \
   static lean_external_class * g_ ## NAME ## _class; \
@@ -101,7 +102,11 @@ GDExtensionInterfaceVariantGetPtrBuiltinMethod variant_get_ptr_builtin_method = 
 
 GDExtensionInterfaceClassdbRegisterExtensionClass2 classdb_register_extension_class2 = NULL;
 GDExtensionInterfaceClassdbRegisterExtensionClassMethod classdb_register_extension_class_method = NULL;
-GDExtensionInterfaceClassdbRegisterExtensionClassProperty classdb_register_extension_class_property= NULL;
+GDExtensionInterfaceClassdbRegisterExtensionClassProperty classdb_register_extension_class_property = NULL;
+GDExtensionInterfaceClassdbConstructObject classdb_construct_object = NULL;
+
+GDExtensionInterfaceObjectSetInstance object_set_instance = NULL;
+GDExtensionInterfaceObjectSetInstanceBinding object_set_instance_binding = NULL;
 
 GDExtensionInterfaceVariantGetPtrUtilityFunction variant_get_ptr_utility_function = NULL;
 GDExtensionInterfaceGlobalGetSingleton global_get_singleton = NULL;
@@ -139,6 +144,11 @@ GDExtensionInterfaceStringNameNewWithLatin1Chars string_name_new_with_latin1_cha
 /* *** Conversions */
 #include "builtin_type_conversion_decl.h"
 
+typedef void (*GDObjectFromVariantFunc)(struct GDObject *, struct GDVariant *);
+typedef void (*GDObjectToVariantFunc)(struct GDVariant *, struct GDObject *);
+GDObjectToVariantFunc gd_object_to_variant = NULL;
+GDObjectFromVariantFunc gd_object_from_variant = NULL;
+
 /* *** Singletons */
 #include "singleton_decl.h"
 
@@ -153,15 +163,14 @@ inline static void lean_godot_variant_finalizer(void *obj) {
 }
 REGISTER_LEAN_CLASS(lean_godot_Variant, lean_godot_variant_finalizer, noop_foreach)
 
-inline static void lean_godot_Object_finalizer(void *obj) {
-
-}
+inline static void lean_godot_Object_finalizer(void *obj) {}
 REGISTER_LEAN_CLASS(lean_godot_Object, lean_godot_Object_finalizer, noop_foreach)
 
 
 /* *** Class Declarations */
 #include "builtin_type_class_decl.h"
 
+  
 /* *** declarations? */
 #include "declarations.h"
 
@@ -171,6 +180,17 @@ REGISTER_LEAN_CLASS(lean_godot_Object, lean_godot_Object_finalizer, noop_foreach
 /* *** builtin type conversion functions  */
 
 #include "builtin_type_conversion_bindings.h"
+
+lean_object *lean4_object_to_variant(lean_object *obj) {
+  LEAN4_CHECK_FP_INIT_PURE(gd_object_to_variant);
+  LEAN4_CHECK_FP_INIT_PURE(mem_alloc);
+  printf("convering obj to variant~\n");
+  struct GDVariant *res = (struct GDVariant *)mem_alloc(sizeof(*res));
+  struct GDObject *rawData = lean_get_external_data(obj);
+  gd_object_to_variant(res, rawData);
+  lean_object *resObj = lean_alloc_external(get_lean_godot_Variant_class(), (void *) res);
+  return resObj;
+}
 
 /* *** builtin type constant functions */
 
@@ -1126,11 +1146,6 @@ void lean4_godot_method_ptrcall(
 }
 
 /* *** Lean Godot Bind */
-
-#define LEAN_UNWRAP_STRINGNAME(DEST, LEAN_OBJ) string_name_new_with_utf8_chars_and_len(DEST, lean_string_cstr(LEAN_OBJ), lean_string_len(LEAN_OBJ))
-#define LEAN_UNWRAP_STRING(DEST, LEAN_OBJ) string_new_with_utf8_chars_and_len(DEST, lean_string_cstr(LEAN_OBJ), lean_string_len(LEAN_OBJ))
-
-
 lean_object *lean4_register_extension_class_method(lean_object *class_name, lean_object *class_method_object) {
   // gd_class_name
   struct GDStringName gd_class_name;
@@ -1158,6 +1173,7 @@ lean_object *lean4_register_extension_class_method(lean_object *class_name, lean
   struct GDString returnValuePropertyHintString;
   /* GDExtensionBool */
   method_info.has_return_value = lean_option_is_some(return_value_info_obj); //
+
   if(method_info.has_return_value) {
     /* GDExtensionPropertyInfo * */
     method_info.return_value_info = &returnValuePropertyInfo; //
@@ -1203,20 +1219,18 @@ lean_object *lean4_register_extension_class_method(lean_object *class_name, lean
   for(size_t i = 0; i < method_info.argument_count; i++) {
     lean_object *property_info = lean_array_cptr(method_arginfo_array)[i];
 
-    arginfo_array[i].type = lean_unbox(lean_ctor_get(property_info, 0));
-
     arginfo_array[i].name = &arginfo_name_array[i];
-    LEAN_UNWRAP_STRINGNAME(arginfo_array[i].name,lean_ctor_get(property_info, 1));
+    LEAN_UNWRAP_STRINGNAME(arginfo_array[i].name,lean_ctor_get(property_info, 0));
 
     arginfo_array[i].class_name = &arginfo_class_name_array[i];
-    LEAN_UNWRAP_STRINGNAME(arginfo_array[i].class_name,lean_ctor_get(property_info, 2));
-
-    arginfo_array[i].hint = lean_unbox(lean_ctor_get(property_info, 3));
+    LEAN_UNWRAP_STRINGNAME(arginfo_array[i].class_name,lean_ctor_get(property_info, 1));
 
     arginfo_array[i].hint_string = &arginfo_hint_string_array[i];
-    LEAN_UNWRAP_STRING(arginfo_array[i].hint_string,lean_ctor_get(property_info, 4));
+    LEAN_UNWRAP_STRING(arginfo_array[i].hint_string,lean_ctor_get(property_info, 2));
+    arginfo_array[i].usage = lean_unbox(lean_ctor_get(property_info, 3));
 
-    arginfo_array[i].usage = lean_unbox(lean_ctor_get(property_info, 5));
+    arginfo_array[i].type = (lean_ctor_get_uint8(property_info, sizeof(void *) * 4));
+    arginfo_array[i].hint = (lean_ctor_get_uint8(property_info, sizeof(void *) * 4 + 1));
 
     argmetadata_array[i] = GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE;
   }
@@ -1250,14 +1264,139 @@ lean_object *lean4_register_extension_class_method(lean_object *class_name, lean
   return lean_io_result_mk_ok(lean_box(0));
 }
 
+/* *** Register Extension Class Property */
+lean_object *lean4_register_extension_class_property(lean_object *class_name, lean_object *property_info, lean_object *setter_name, lean_object *getter_name) {
+  struct GDStringName gd_class_name;
+  struct GDStringName gd_setter_name;
+  struct GDStringName gd_getter_name;
+  GDExtensionPropertyInfo propertyInfo;
+  struct GDStringName propertyInfoName;
+  struct GDStringName propertyInfoClassName;
+  struct GDStringName propertyInfoHintString;
 
-lean_object *lean4_kiran_example(lean_object *self, lean_object *method) {
-  printf("calling_lean4_kiran_example\n");
+  LEAN_UNWRAP_STRINGNAME(&gd_class_name, class_name);
+  LEAN_UNWRAP_STRINGNAME(&gd_setter_name, setter_name);
+  LEAN_UNWRAP_STRINGNAME(&gd_getter_name, getter_name);
+
+    propertyInfo.name = &propertyInfoName;
+    LEAN_UNWRAP_STRINGNAME(propertyInfo.name,lean_ctor_get(property_info, 0));
+
+    propertyInfo.class_name = &propertyInfoClassName;
+    LEAN_UNWRAP_STRINGNAME(propertyInfo.class_name,lean_ctor_get(property_info, 1));
+
+    propertyInfo.hint_string = &propertyInfoHintString;
+    LEAN_UNWRAP_STRING(propertyInfo.hint_string,lean_ctor_get(property_info, 2));
+    propertyInfo.usage = lean_unbox(lean_ctor_get(property_info, 3));
+
+    propertyInfo.type = (lean_ctor_get_uint8(property_info, sizeof(void *) * 4));
+    propertyInfo.hint = (lean_ctor_get_uint8(property_info, sizeof(void *) * 4 + 1));
 
 
+  classdb_register_extension_class_property(
+    library_token,
+    &gd_class_name,
+    &propertyInfo,
+    &gd_setter_name,
+    &gd_getter_name
+  );
+
+ gd_stringname_destructor(&gd_class_name);
+ gd_stringname_destructor(&gd_setter_name);
+ gd_stringname_destructor(&gd_getter_name);
+ gd_stringname_destructor(propertyInfo.name);
+ gd_stringname_destructor(propertyInfo.class_name);
+ gd_stringname_destructor(propertyInfo.hint_string);
 
   return lean_io_result_mk_ok(lean_box(0));
 }
+/* *** Register Extension Class Helpers */
+GDExtensionInstanceBindingCallbacks lean4_extension_binding_callbacks = {
+  .create_callback = NULL,
+  .free_callback=NULL,
+  .reference_callback=NULL
+};
+
+GDExtensionObjectPtr lean4_create_instance(void *class_userdata_raw) {
+  lean_object *class_userdata = class_userdata_raw;
+  struct GDStringName class_name;
+
+  LEAN_UNWRAP_STRINGNAME(&class_name, lean_ctor_get(class_userdata, 1));
+  GDExtensionObjectPtr parent_object_raw = classdb_construct_object(&class_name);
+  gd_stringname_destructor(&class_name);
+
+  lean_object *parent_object = lean_alloc_external(get_lean_godot_Object_class(), parent_object_raw);
+  lean_object *constructor = lean_ctor_get(class_userdata, 2);
+  lean_object *res = lean_apply_2(constructor, parent_object, lean_box(0));
+  lean_object *self = lean_io_result_take_value(res);
+
+  LEAN_UNWRAP_STRINGNAME(&class_name, lean_ctor_get(class_userdata, 0));
+  object_set_instance(parent_object_raw, &class_name, self);
+  object_set_instance_binding(
+   parent_object_raw, library_token, self, &lean4_extension_binding_callbacks
+  );
+  gd_stringname_destructor(&class_name);
+
+  return parent_object_raw;
+}
+
+void lean4_free_instance(void *class_userdata_raw, GDExtensionClassInstancePtr p_instance) {
+  printf("freeing instance?\n");
+    if (p_instance == NULL)
+    {
+        return;
+    }
+    lean_object *class_userdata = class_userdata_raw;
+    lean_object *self = p_instance;
+    lean_object *destructor = lean_ctor_get(class_userdata, 3);
+    lean_object *res = lean_apply_2(destructor, self, lean_box(0));
+    if(!lean_io_result_is_ok(res)) {
+      lean_io_result_show_error(res);
+    }
+    lean_dec(res);
+}
+
+/* *** Register Extension Class */
+lean_object *lean4_register_extension_class(lean_object *class_info_data) {
+
+  struct GDStringName gd_class_name;
+  LEAN_UNWRAP_STRINGNAME(&gd_class_name, lean_ctor_get(class_info_data, 0));
+  
+  struct GDStringName gd_parent_class_name;
+  LEAN_UNWRAP_STRINGNAME(&gd_parent_class_name, lean_ctor_get(class_info_data, 1));
+
+  GDExtensionClassCreationInfo2 class_info = {
+    .is_virtual = false,
+    .is_abstract = false,
+    .is_exposed = true,
+    .set_func = NULL, .get_func = NULL,
+    .get_property_list_func = NULL, .free_property_list_func = NULL,
+    .property_can_revert_func = NULL, .property_get_revert_func = NULL,
+    .validate_property_func = NULL,
+    .notification_func = NULL,
+    .to_string_func = NULL,
+    .reference_func = NULL, .unreference_func = NULL,
+    .create_instance_func = lean4_create_instance, .free_instance_func = lean4_free_instance,
+    .recreate_instance_func = NULL,
+    .get_virtual_func = NULL,
+    .get_virtual_call_data_func = NULL,
+    .get_rid_func = NULL,
+    .class_userdata = class_info_data
+  };
+
+  classdb_register_extension_class2(
+      library_token, &gd_class_name,
+      &gd_parent_class_name,
+      &class_info
+  );
+
+
+  gd_stringname_destructor(&gd_parent_class_name);
+  gd_stringname_destructor(&gd_class_name);
+  
+  return lean_io_result_mk_ok(lean_box(0));
+}
+
+
 
 
 /* ** Lean state */
@@ -1347,7 +1486,7 @@ GDExtensionBool lean_godot_gdnative_init(
   classdb_register_extension_class_method = (GDExtensionInterfaceClassdbRegisterExtensionClassMethod)p_get_proc_address("classdb_register_extension_class_method");
   classdb_register_extension_class_property = (GDExtensionInterfaceClassdbRegisterExtensionClassProperty)p_get_proc_address("classdb_register_extension_class_property");
 
-
+  classdb_construct_object = (GDExtensionInterfaceClassdbConstructObject)p_get_proc_address("classdb_construct_object");
   
   gd_int32_to_variant_raw = (GDInt32ToVariantFunc)get_variant_from_type_constructor(GDEXTENSION_VARIANT_TYPE_INT);
   gd_int32_from_variant_raw = (GDInt32FromVariantFunc)get_variant_to_type_constructor(GDEXTENSION_VARIANT_TYPE_INT);
@@ -1358,7 +1497,14 @@ GDExtensionBool lean_godot_gdnative_init(
   gd_double_to_variant_raw = (GDFloatToVariantFunc)get_variant_from_type_constructor(GDEXTENSION_VARIANT_TYPE_FLOAT);
   gd_double_from_variant_raw = (GDFloatFromVariantFunc)get_variant_to_type_constructor(GDEXTENSION_VARIANT_TYPE_FLOAT);
 
+  gd_double_to_variant_raw = (GDFloatToVariantFunc)get_variant_from_type_constructor(GDEXTENSION_VARIANT_TYPE_FLOAT);
+  gd_double_from_variant_raw = (GDFloatFromVariantFunc)get_variant_to_type_constructor(GDEXTENSION_VARIANT_TYPE_FLOAT);
 
+  gd_object_to_variant = (GDObjectToVariantFunc)get_variant_from_type_constructor(GDEXTENSION_VARIANT_TYPE_OBJECT);
+  gd_object_from_variant = (GDObjectFromVariantFunc)get_variant_to_type_constructor(GDEXTENSION_VARIANT_TYPE_OBJECT);
+
+  object_set_instance = (GDExtensionInterfaceObjectSetInstance)p_get_proc_address("object_set_instance");
+  object_set_instance_binding = (GDExtensionInterfaceObjectSetInstanceBinding)p_get_proc_address("object_set_instance_binding");
 
   #include "init.h"
 

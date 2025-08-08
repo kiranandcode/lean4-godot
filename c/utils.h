@@ -48,8 +48,8 @@ static inline lean_object * lean_mk_option_none() {
   return lean_box(0);
 }
 
-static inline bool lean_option_is_none(lean_object *r) { return lean_ptr_tag(r) == 0; }
-static inline bool lean_option_is_some(lean_object *r) { return lean_ptr_tag(r) == 1; }
+static inline bool lean_option_is_none(lean_object *r) { return lean_obj_tag(r) == 0; }
+static inline bool lean_option_is_some(lean_object *r) { return lean_obj_tag(r) == 1; }
 
 
 #endif

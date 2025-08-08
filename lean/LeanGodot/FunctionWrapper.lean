@@ -1,6 +1,7 @@
 import Lean
 import LeanGodot.String
 import LeanGodot.BuiltinTypes
+import LeanGodot.Object
 import LeanGodot.GlobalEnums
 
 namespace Godot
@@ -63,7 +64,6 @@ structure Method (SelfType: Type) where
   retTy : OpaqueVariantType
   func: mkMethodType SelfType retTy args.toList
 
-
 structure PropertyInfo (T: Type) where
   type: VariantType T
   name: OString
@@ -83,25 +83,40 @@ structure MethodInfo (SelfType: Type) where
   returnValueInfo: Option (PropertyInfo method.retTy.ty)
   argInfo: OArray OpaquePropertyInfo
 
-  
+structure ClassInfo (SelfType: Type) where
+  class_name: OString
+  parent_class_name: OString
+  constructor: Object -> IO SelfType
+  destructor: SelfType -> IO Unit
 
-#check Godot.Enums.PropertyHint
 
-def exampleMethodFunc (self: IO.Ref Int) (vl: Int32) (v1 v2 : Bool) : IO Unit := do
-      let vl <- self.get
-      self.set (vl + 1)
-      println! "input was {vl} {v1} {v2}";
-      return ()
+@[extern "lean4_register_extension_class"]
+opaque register_extension_class : ClassInfo T -> IO Unit
 
-def x := IO.Ref
+@[extern "lean4_register_extension_class_method"]
+opaque register_extension_class_method : OString -> MethodInfo T -> IO Unit
 
-def exampleMethod : Method (IO.Ref Int) :=
-  Method.mk
-   #[({ ty := Int32, tag := VariantType.Int  }),
-     ({ ty := Bool, tag := VariantType.Bool  }),
-     ({ ty := Bool, tag := VariantType.Bool  })]
-     (⟨ Unit, VariantType.Nil ⟩)
-   (exampleMethodFunc)
+@[extern "lean4_register_extension_class_property"]
+opaque register_extension_class_property : OString -> PropertyInfo T -> OString -> OString -> IO Unit
+
+
+-- #check Godot.Enums.PropertyHint
+
+-- def exampleMethodFunc (self: IO.Ref Int) (vl: Int32) (v1 v2 : Bool) : IO Unit := do
+--       let vl <- self.get
+--       self.set (vl + 1)
+--       println! "input was {vl} {v1} {v2}";
+--       return ()
+
+-- def x := IO.Ref
+
+-- def exampleMethod : Method (IO.Ref Int) :=
+--   Method.mk
+--    #[({ ty := Int32, tag := VariantType.Int  }),
+--      ({ ty := Bool, tag := VariantType.Bool  }),
+--      ({ ty := Bool, tag := VariantType.Bool  })]
+--      (⟨ Unit, VariantType.Nil ⟩)
+--    (exampleMethodFunc)
 
 
 end Godot

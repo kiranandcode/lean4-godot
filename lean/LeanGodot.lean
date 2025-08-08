@@ -12,8 +12,8 @@ import Bindings
 
 namespace Godot
 
-@[extern "lean4_kiran_example"]
-opaque kiran_example: IO.Ref Int -> Method (IO.Ref Int) -> IO Unit
+-- @[extern "lean4_kiran_example"]
+-- opaque kiran_example: IO.Ref Int -> Method (IO.Ref Int) -> IO Unit
 
 @[export lean_godot_on_initialization]
 def on_initialization (lvl: Initialization.Level) : IO Unit := do
@@ -65,10 +65,26 @@ def on_initialization (lvl: Initialization.Level) : IO Unit := do
   gd_print_error! "cubic interpolate in time is {ex}"
   let basis <- Godot.Basis.from_scale vec3
   gd_print_error! "basis is {basis}"
-  let ref <- IO.mkRef 0
-  kiran_example ref Godot.exampleMethod
-  let vl <- ref.get
-  println! "result back from ffi again is {vl}"
+  if let Initialization.Level.EDITOR := lvl then
+     Godot.register_extension_class (⟨"LeanGodot", "Sprite2D", fun _o => (IO.mkRef 1337), fun _ => println! "deleted"⟩ : ClassInfo (IO.Ref Int32))
+     Godot.register_extension_class_method "LeanGodot" (⟨
+        "get_id", ⟨#[], ⟨Int32, .Int⟩, ((fun o => o.get): IO.Ref Int32 -> IO Int32)⟩,
+        Godot.Enums.ClassMethodFlags.NORMAL,
+        .none,
+        #[]
+     ⟩ : MethodInfo (IO.Ref Int32))
+     Godot.register_extension_class_method "LeanGodot" (⟨
+        "set_id", ⟨#[⟨Int32, .Int⟩], ⟨Unit, .Nil⟩, ((fun o vl => o.set vl): IO.Ref Int32 -> Int32 -> IO Unit)⟩,
+        Godot.Enums.ClassMethodFlags.NORMAL,
+        .none,
+        #[⟨Int32,
+          ⟨.Int,"value","",Godot.Enums.PropertyHint.PROPERTY_HINT_NONE,"", Enums.PropertyUsageFlags.PROPERTY_USAGE_NONE⟩⟩]
+     ⟩ : MethodInfo (IO.Ref Int32))
+     Godot.register_extension_class_property "LeanGodot"
+       ⟨.Int,"id","",Godot.Enums.PropertyHint.PROPERTY_HINT_EXPRESSION,"id of the leangodot state", Enums.PropertyUsageFlags.PROPERTY_USAGE_EDITOR⟩
+       "set_id" "get_id"
+
+
 
   /- gd_eprint! "printing!!! {var_str}"
  -/
